@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { useAuth } from "@/app/auth-context"
 import { ProtectedRoute } from "@/app/protected-route"

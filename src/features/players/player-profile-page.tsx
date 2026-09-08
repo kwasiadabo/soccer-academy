@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAuth } from "@/app/auth-context"
 import { RECEPTIONIST_NAV_ITEMS } from "@/features/dashboard-receptionist/receptionist-dashboard"

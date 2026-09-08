@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import type { LucideIcon } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 import {
   AlertOctagon,
   Award,

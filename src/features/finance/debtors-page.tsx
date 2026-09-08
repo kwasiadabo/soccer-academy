@@ -2,7 +2,7 @@ import { formatDate } from "@/lib/date"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AlertTriangle, BellRing, Search } from "lucide-react"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAuth } from "@/app/auth-context"

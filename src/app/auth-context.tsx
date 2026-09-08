@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import type { AuthResponse, AuthUser } from "@soccer-academy/shared-types"
+import type { AuthResponse, AuthUser } from "@/lib/shared-types"
 import { api, setAccessToken, setSessionExpiredHandler } from "@/lib/api-client"
 
 interface AuthContextValue {

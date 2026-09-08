@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search, X } from "lucide-react"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { DashboardLayout, type NavItem } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Plus, KeyRound, Pencil, Trash2, Ban, CheckCircle2, Search, X } from "lucide-react"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAuth } from "@/app/auth-context"

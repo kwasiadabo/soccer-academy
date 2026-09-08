@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom"
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 import { useAuth } from "./auth-context"
 
 interface ProtectedRouteProps {

@@ -1,4 +1,4 @@
-import { ROLE_NAMES } from "@soccer-academy/shared-types"
+import { ROLE_NAMES } from "@/lib/shared-types"
 
 export const ROLE_HOME_PATH: Record<string, string> = {
   [ROLE_NAMES.ADMIN]: "/admin",
