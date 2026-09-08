@@ -70,7 +70,6 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, section: "Admin" },
   { to: "/admin/staff", label: "Staff", icon: Users, section: "Admin" },
   { to: "/admin/users", label: "Users", icon: KeyRound, section: "Admin" },
-  { to: "/admin/assessment-templates", label: "Templates", icon: ClipboardCheck, section: "Admin" },
   { to: "/issues", label: "Issues", icon: LifeBuoy, section: "Admin" },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag, section: "Admin" },
   { to: "/merchandise/products", label: "Products", icon: Package, section: "Admin" },

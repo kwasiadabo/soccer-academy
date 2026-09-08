@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { StatusBadge } from "@/design-system/status-badge"
+import { Badge } from "@/components/ui/badge"
 import { LoadingState } from "@/design-system/loading-state"
 import { ErrorState } from "@/design-system/error-state"
 import { formatCurrency } from "@/lib/currency"
@@ -53,6 +54,16 @@ export function StaffOrderDetailPage() {
               <CardDescription>
                 Ordered by {order.guardian.firstName} {order.guardian.lastName} · {formatDate(order.createdAt)}
               </CardDescription>
+              {!order.submittedByUserId ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="warning">Guest checkout</Badge>
+                  <p className="text-xs text-muted-foreground">
+                    Placed by {order.guestName}
+                    {order.guestPhone ? ` · ${order.guestPhone}` : ""}
+                    {order.guestEmail ? ` · ${order.guestEmail}` : ""}
+                  </p>
+                </div>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="order-status" className="sr-only">

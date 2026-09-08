@@ -14,6 +14,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const IDLE_TIMEOUT_MS = 10 * 60 * 1000
+// Enough to catch real activity without resetting the timer on every single
+// mousemove/scroll tick.
+const ACTIVITY_THROTTLE_MS = 1000
+const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -60,6 +66,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.post("/auth/logout").catch(() => undefined)
     clearSession()
   }, [clearSession])
+
+  // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity.
+  // ProtectedRoute reacts to `user` becoming null by redirecting to /login with the
+  // current location in state, so LoginPage can send the user back where they were.
+  useEffect(() => {
+    if (!user) return
+
+    let timeoutId: ReturnType<typeof setTimeout>
+    let lastReset = 0
+
+    const scheduleLogout = () => {
+      timeoutId = setTimeout(() => {
+        void logout()
+      }, IDLE_TIMEOUT_MS)
+    }
+
+    const onActivity = () => {
+      const now = Date.now()
+      if (now - lastReset < ACTIVITY_THROTTLE_MS) return
+      lastReset = now
+      clearTimeout(timeoutId)
+      scheduleLogout()
+    }
+
+    scheduleLogout()
+    for (const event of ACTIVITY_EVENTS) window.addEventListener(event, onActivity, { passive: true })
+
+    return () => {
+      clearTimeout(timeoutId)
+      for (const event of ACTIVITY_EVENTS) window.removeEventListener(event, onActivity)
+    }
+    // Re-armed per login session (user.id), not on every incidental user-object update
+    // (e.g. changePassword mutating mustChangePassword) which would otherwise reset the timer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, logout])
 
   const hasRole = useCallback(
     (...roles: string[]) => !!user && roles.some((role) => user.roles.includes(role)),

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import type { Location } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -24,6 +25,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export function LoginPage() {
 	const { login } = useAuth();
 	const navigate = useNavigate();
+	const location = useLocation();
+	const from = (location.state as { from?: Location } | null)?.from;
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -37,7 +40,8 @@ export function LoginPage() {
 		setServerError(null);
 		try {
 			const user = await login(values.email, values.password);
-			navigate(homePathForRoles(user.roles), { replace: true });
+			const destination = from ? `${from.pathname}${from.search}${from.hash}` : homePathForRoles(user.roles);
+			navigate(destination, { replace: true });
 		} catch (err) {
 			setServerError(
 				err instanceof ApiError

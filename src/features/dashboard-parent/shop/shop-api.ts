@@ -48,7 +48,12 @@ export interface ShopOrderItem {
 export interface ShopOrder {
   id: string
   guardianId: string
-  submittedByUserId: string
+  submittedByUserId: string | null
+  // Populated only for a guest (unauthenticated) checkout — see submittedBy for a
+  // logged-in order's submitter instead.
+  guestName: string | null
+  guestPhone: string | null
+  guestEmail: string | null
   playerId: string
   status: MerchandiseOrderStatus
   totalAmount: string
@@ -57,7 +62,7 @@ export interface ShopOrder {
   createdAt: string
   updatedAt: string
   guardian: OrderPerson
-  submittedBy: OrderPerson
+  submittedBy: OrderPerson | null
   player: { id: string; firstName: string; lastName: string; playerCode: string | null }
   invoice: {
     id: string

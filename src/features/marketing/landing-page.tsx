@@ -20,6 +20,8 @@ import { JoinUsDialog } from './join-us-dialog';
 import { usePlayerOfTheWeekFeed } from './player-of-the-week-api';
 import { useGalleryFeed } from '@/features/gallery/gallery-api';
 import { formatDate } from '@/lib/date';
+import { SectionHeading } from './section-heading';
+import { StoreSection } from './store-section';
 
 const HERO_IMAGES = ['/images/hero-academy.jpg', '/images/hero-academy-2.jpg'];
 
@@ -159,37 +161,6 @@ const testimonials = [
 	},
 ];
 
-function SectionHeading({
-	eyebrow,
-	title,
-	description,
-}: {
-	eyebrow: string;
-	title: string;
-	description?: string;
-}) {
-	return (
-		<motion.div
-			initial={{ opacity: 0, y: 16 }}
-			whileInView={{ opacity: 1, y: 0 }}
-			viewport={{ once: true, margin: '-80px' }}
-			transition={{ duration: 0.3, ease: 'easeOut' }}
-			className="mx-auto max-w-2xl text-center"
-		>
-			<span className="text-xs font-bold uppercase tracking-wider text-accent-foreground">
-				{eyebrow}
-			</span>
-			<h2 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
-				{title}
-			</h2>
-			{description ? (
-				<p className="mt-3 text-sm text-muted-foreground sm:text-base">
-					{description}
-				</p>
-			) : null}
-		</motion.div>
-	);
-}
 
 function PlayerOfTheWeekMarquee() {
 	const { data } = usePlayerOfTheWeekFeed();
@@ -375,6 +346,12 @@ export function LandingPage() {
 							Gallery
 						</a>
 						<a
+							href="#store"
+							className="text-sm font-medium text-muted-foreground hover:text-foreground"
+						>
+							Store
+						</a>
+						<a
 							href="#testimonials"
 							className="text-sm font-medium text-muted-foreground hover:text-foreground"
 						>
@@ -406,7 +383,7 @@ export function LandingPage() {
 					className="absolute inset-0 bg-linear-to-t from-sidebar/40 via-transparent to-transparent"
 				/>
 
-				<div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 md:grid-cols-2 md:items-center md:py-28">
+				<div className="relative mx-auto grid max-w-6xl min-h-[70vh] gap-10 px-4 py-16 sm:px-6 sm:py-20 md:min-h-160 md:grid-cols-2 md:items-center md:py-28">
 					<motion.div
 						initial={{ opacity: 0, y: 16 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -542,6 +519,7 @@ export function LandingPage() {
 
 			<PlayerOfTheWeekMarquee />
 			<GallerySection />
+			<StoreSection />
 
 			{/* Testimonials */}
 			<section
