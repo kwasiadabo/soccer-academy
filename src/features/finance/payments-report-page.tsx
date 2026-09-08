@@ -52,7 +52,7 @@ export function PaymentsReportPage() {
   const clearFilters = () => setSearch("")
 
   const filteredRows = useMemo(() => {
-    if (!data) return data?.rows
+    if (!data) return undefined
     const query = search.trim().toLowerCase()
     if (query === "") return data.rows
     return data.rows.filter(

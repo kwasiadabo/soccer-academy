@@ -29,7 +29,7 @@ import { useAuth } from "@/app/auth-context"
 import { RECEPTIONIST_NAV_ITEMS } from "@/features/dashboard-receptionist/receptionist-dashboard"
 import { InvoiceSection } from "@/features/finance/invoice-section"
 import { PlayerStatement } from "@/features/finance/player-statement"
-import { remainingBalance, usePlayerInvoices } from "@/features/finance/finance-api"
+import { usePlayerInvoices } from "@/features/finance/finance-api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -53,7 +53,6 @@ import { EmptyState } from "@/design-system/empty-state"
 import { ProgressBar } from "@/design-system/progress-bar"
 import { ApiError } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
-import { formatCurrency } from "@/lib/currency"
 import {
   assessmentAveragePercent,
   CATEGORY_LABELS,

@@ -34,7 +34,8 @@ const schema = z.object({
   category: z.enum(["JERSEY", "TRACK_SUIT", "BOOTS", "SOCKS", "OTHER"]),
   basePrice: z.coerce.number().min(0, "Price must be 0 or more"),
 })
-type FormValues = z.infer<typeof schema>
+type FormInput = z.input<typeof schema>
+type FormValues = z.output<typeof schema>
 
 export function ProductFormDialog({
   product,
@@ -60,7 +61,7 @@ export function ProductFormDialog({
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
+  } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: product?.name ?? "",
