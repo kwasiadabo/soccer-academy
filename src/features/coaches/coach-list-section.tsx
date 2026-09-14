@@ -120,7 +120,13 @@ function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => vo
   )
 }
 
-export function CoachListSection({ basePath = "/admin/staff" }: { basePath?: string }) {
+export function CoachListSection({
+  basePath = "/admin/staff",
+  addButtonLabel = "New staff",
+}: {
+  basePath?: string
+  addButtonLabel?: string
+}) {
   const navigate = useNavigate()
   const { data, isLoading, isError, refetch } = useCoaches()
   const createCoach = useCreateCoach()
@@ -188,7 +194,7 @@ export function CoachListSection({ basePath = "/admin/staff" }: { basePath?: str
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
-              <Plus /> New staff
+              <Plus /> {addButtonLabel}
             </Button>
           </DialogTrigger>
           <DialogContent>

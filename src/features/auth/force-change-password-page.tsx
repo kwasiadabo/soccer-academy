@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AcademyLogo } from "@/design-system/academy-logo"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { useAuth } from "@/app/auth-context"
 import { homePathForRoles } from "@/app/role-routes"
 import { ApiError } from "@/lib/api-client"
@@ -29,6 +30,7 @@ type ChangePasswordValues = z.infer<typeof changePasswordSchema>
 
 export function ForceChangePasswordPage() {
   const { user, changePassword } = useAuth()
+  const { name: academyName } = useAcademyBranding()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -61,7 +63,7 @@ export function ForceChangePasswordPage() {
       >
         <div className="mb-6 flex items-center gap-2.5">
           <AcademyLogo className="size-9" chip />
-          <span className="text-sm font-semibold tracking-wide text-foreground">Kapikids Soccer Academy</span>
+          <span className="text-sm font-semibold tracking-wide text-foreground">{academyName}</span>
         </div>
 
         <div className="mb-6 space-y-1">

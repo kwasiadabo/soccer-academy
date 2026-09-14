@@ -22,7 +22,7 @@ import { LoadingState } from "@/design-system/loading-state"
 import { StatCard } from "@/design-system/stat-card"
 import { useMatches } from "@/features/matches/matches-api"
 import { usePlayers } from "@/features/players/players-api"
-import { useTrainingPlans, useTrainingSessions } from "@/features/training/training-api"
+import { useTrainingPlans, useTrainingSchedule, useTrainingSessions } from "@/features/training/training-api"
 import { AttendanceAnalyticsSection } from "@/features/training/attendance-analytics-section"
 
 export const COACH_NAV_ITEMS: NavItem[] = [
@@ -49,10 +49,12 @@ export function CoachDashboard() {
   const plans = useTrainingPlans()
   const matches = useMatches()
   const players = usePlayers()
+  const { data: schedule } = useTrainingSchedule()
+  const fixtureDayOfWeek = schedule?.dayOfWeek ?? 6
 
-  const todaysSessions = (sessions.data ?? []).filter((s) => isWithinCurrentTrainingWeek(s.date))
+  const todaysSessions = (sessions.data ?? []).filter((s) => isWithinCurrentTrainingWeek(s.date, fixtureDayOfWeek))
   const upcomingSessions = (sessions.data ?? []).filter(
-    (s) => isWithinNextDays(s.date, 7) && !isWithinCurrentTrainingWeek(s.date)
+    (s) => isWithinNextDays(s.date, 7) && !isWithinCurrentTrainingWeek(s.date, fixtureDayOfWeek)
   )
   const upcomingMatches = (matches.data ?? []).filter((m) => isWithinNextDays(m.matchDate, 7))
   const draftPlans = (plans.data ?? []).filter((p) => p.approvalStatus === "DRAFT").length

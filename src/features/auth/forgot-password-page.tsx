@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AcademyLogo } from "@/design-system/academy-logo"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { api } from "@/lib/api-client"
 
 const forgotPasswordSchema = z.object({
@@ -19,6 +20,7 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>
 
 export function ForgotPasswordPage() {
+  const { name: academyName } = useAcademyBranding()
   const [submitted, setSubmitted] = useState(false)
 
   const {
@@ -42,7 +44,7 @@ export function ForgotPasswordPage() {
       >
         <div className="mb-6 flex items-center gap-2.5">
           <AcademyLogo className="size-9" chip />
-          <span className="text-sm font-semibold tracking-wide text-foreground">Kapikids Soccer Academy</span>
+          <span className="text-sm font-semibold tracking-wide text-foreground">{academyName}</span>
         </div>
 
         {submitted ? (

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import "@fontsource/anton";
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -10,10 +11,11 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AcademyLogo } from '@/design-system/academy-logo';
+import { SamsMark } from '@/design-system/sams-mark';
 import { useAuth } from '@/app/auth-context';
 import { homePathForRoles } from '@/app/role-routes';
 import { ApiError } from '@/lib/api-client';
+import { setAcademySlugOverride } from '@/lib/tenant';
 
 const loginSchema = z.object({
 	email: z.string().email('Enter a valid email address'),
@@ -29,6 +31,22 @@ export function LoginPage() {
 	const from = (location.state as { from?: Location } | null)?.from;
 	const [serverError, setServerError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
+	const [searchParams, setSearchParams] = useSearchParams();
+	const [justSignedUpFor, setJustSignedUpFor] = useState<string | null>(null);
+
+	// Landed here right after a self-serve signup on the root SAMS domain (see
+	// sams-signup-flow.tsx) — there's no real subdomain to have arrived on yet
+	// in local dev, so this stands in for one until the URL param is consumed.
+	useEffect(() => {
+		const academy = searchParams.get('academy');
+		if (!academy) return;
+		setAcademySlugOverride(academy);
+		setJustSignedUpFor(academy);
+		searchParams.delete('academy');
+		setSearchParams(searchParams, { replace: true });
+		// Only ever run once, for the param present on the initial navigation.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const {
 		register,
@@ -52,41 +70,50 @@ export function LoginPage() {
 	};
 
 	return (
-		<div className="flex min-h-dvh items-center justify-center bg-muted/40 p-4">
+		<div className="dark flex min-h-dvh items-center justify-center bg-[#0B0F0A] p-4">
 			<motion.div
 				initial={{ opacity: 0, y: 12 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.25, ease: 'easeOut' }}
-				className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-border bg-card shadow-lg md:grid-cols-2"
+				className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-[#0E1310] shadow-2xl md:grid-cols-2"
 			>
 				{/* Brand panel */}
-				<div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground md:flex">
+				<div className="relative hidden flex-col justify-between overflow-hidden bg-[#0B0F0A] p-10 text-white md:flex">
 					<div
 						aria-hidden
 						className="pointer-events-none absolute inset-0 overflow-hidden"
 					>
-						<div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-primary/10" />
-						<div className="absolute top-24 -left-16 h-40 w-40 rotate-12 rounded-3xl bg-white/5" />
-						<div className="absolute -bottom-20 right-8 h-64 w-64 rounded-full bg-primary/10" />
-						<div className="absolute bottom-10 left-10 h-16 w-16 rotate-45 rounded-xl border border-white/10" />
+						<div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-lime-400/10 blur-2xl" />
+						<div className="absolute -bottom-20 right-8 h-64 w-64 rounded-full bg-lime-400/10 blur-2xl" />
+						<svg className="absolute top-0 right-0 h-full w-2/3 opacity-[0.05]" viewBox="0 0 400 800" fill="none">
+							{Array.from({ length: 6 }).map((_, i) => (
+								<path
+									key={i}
+									d={`M ${420 - i * 55} 0 L ${380 - i * 55} 0 L ${180 - i * 55} 800 L ${220 - i * 55} 800 Z`}
+									fill="white"
+								/>
+							))}
+						</svg>
 					</div>
 
 					<div className="relative flex items-center gap-2.5">
-						<AcademyLogo className="size-12" chip />
-						<span className="text-sm font-bold tracking-wide">
-							Kapikids Soccer Academy
-						</span>
+						<SamsMark className="size-12" />
+						<span className="text-base font-bold tracking-wide">SAMS</span>
 					</div>
 
 					<div className="relative space-y-3">
-						<p className="text-xs font-bold tracking-[0.2em] text-primary uppercase">
+						<p className="text-xs font-bold tracking-[0.2em] text-lime-400 uppercase">
 							Player Development Platform
 						</p>
-						<h1 className="text-4xl leading-[1.05] font-extrabold tracking-tight">
-							Welcome back
-							<br />.
+						<h1
+							className="text-4xl leading-[0.95] tracking-tight"
+							style={{ fontFamily: 'Anton, sans-serif' }}
+						>
+							WELCOME
+							<br />
+							<span className="text-lime-400">BACK.</span>
 						</h1>
-						<p className="max-w-xs text-sm text-sidebar-foreground/70">
+						<p className="max-w-xs text-sm text-white/60">
 							Sign in to manage rosters, training groups, academy operations and
 							view player development from one place.
 						</p>
@@ -94,12 +121,17 @@ export function LoginPage() {
 				</div>
 
 				{/* Form panel */}
-				<div className="flex flex-col justify-center p-8 sm:p-10">
+				<div className="flex flex-col justify-center bg-[#0E1310] p-8 text-white sm:p-10">
 					<div className="mb-6 space-y-1">
-						<h2 className="text-xl font-semibold text-foreground">Sign in</h2>
-						<p className="text-sm text-muted-foreground">
+						<h2 className="text-xl font-semibold text-white">Sign in</h2>
+						<p className="text-sm text-white/60">
 							Enter your credentials to access your account
 						</p>
+						{justSignedUpFor ? (
+							<p className="mt-3! rounded-lg bg-lime-400/10 px-3 py-2 text-xs font-medium text-lime-400">
+								Your academy is ready — sign in with the email and password you just chose.
+							</p>
+						) : null}
 					</div>
 
 					<form
@@ -135,7 +167,7 @@ export function LoginPage() {
 								<Label htmlFor="password">Password</Label>
 								<Link
 									to="/forgot-password"
-									className="text-xs font-medium text-accent-foreground hover:underline"
+									className="text-xs font-medium text-lime-400 hover:underline"
 								>
 									Forgot password?
 								</Link>
@@ -184,7 +216,11 @@ export function LoginPage() {
 							</p>
 						) : null}
 
-						<Button type="submit" className="w-full" disabled={isSubmitting}>
+						<Button
+							type="submit"
+							className="w-full bg-lime-400 text-[#0B0F0A] hover:bg-lime-300"
+							disabled={isSubmitting}
+						>
 							{isSubmitting ? 'Signing in…' : 'Sign in'}
 						</Button>
 					</form>

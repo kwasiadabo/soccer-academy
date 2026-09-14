@@ -252,6 +252,44 @@ export function useCreateTrainingSession() {
   })
 }
 
+export const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+// The academy's recurring weekly training fixture (day of week + time + location) that
+// sessions are auto-provisioned from — see TrainingService#getSchedule on the API side.
+export interface TrainingSchedule {
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  location: string | null
+}
+
+export interface UpdateTrainingScheduleInput {
+  dayOfWeek?: number
+  startTime?: string
+  endTime?: string
+  location?: string
+}
+
+const SCHEDULE_QUERY_KEY = ["training", "schedule"] as const
+
+export function useTrainingSchedule() {
+  return useQuery({
+    queryKey: SCHEDULE_QUERY_KEY,
+    queryFn: () => api.get<TrainingSchedule>("/training/schedule"),
+  })
+}
+
+export function useUpdateTrainingSchedule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: UpdateTrainingScheduleInput) => api.patch<TrainingSchedule>("/training/schedule", input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEYS.list })
+    },
+  })
+}
+
 export interface QuickMarkResult {
   id: string
   status: AttendanceStatus
@@ -272,11 +310,18 @@ export function useQuickMarkAttendance() {
   })
 }
 
+export interface UpdateTrainingSessionInput {
+  status?: TrainingSessionStatus
+  date?: string
+  startTime?: string
+  endTime?: string
+  location?: string
+}
+
 export function useUpdateTrainingSession(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: { status?: TrainingSessionStatus }) =>
-      api.patch<TrainingSession>(`/training/sessions/${id}`, input),
+    mutationFn: (input: UpdateTrainingSessionInput) => api.patch<TrainingSession>(`/training/sessions/${id}`, input),
     onSuccess: () => invalidateTrainingSession(queryClient, id),
   })
 }

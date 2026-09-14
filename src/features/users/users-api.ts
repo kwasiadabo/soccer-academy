@@ -27,15 +27,16 @@ export function useCreateUser() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: {
+      coachId: string
       email: string
       password: string
-      firstName: string
-      lastName: string
-      phone?: string
       roleNames: string[]
       mustChangePassword?: boolean
     }) => api.post<AdminUser>("/users", input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ["coaches", "list"] })
+    },
   })
 }
 

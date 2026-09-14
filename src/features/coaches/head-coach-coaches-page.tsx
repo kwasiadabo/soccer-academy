@@ -5,7 +5,7 @@ import { CoachListSection } from "./coach-list-section"
 export function HeadCoachCoachesPage() {
   return (
     <DashboardLayout title="Coaches" navItems={HEAD_COACH_NAV_ITEMS}>
-      <CoachListSection basePath="/head-coach/coaches" />
+      <CoachListSection basePath="/head-coach/coaches" addButtonLabel="New coach" />
     </DashboardLayout>
   )
 }

@@ -122,7 +122,7 @@ function PaymentStep({ playerId, onBack, onDone }: { playerId: string; onBack: (
   const subscriptionInvoices = (invoices ?? [])
     .filter(
       (inv) =>
-        inv.feeType.category === "MONTHLY_SUBSCRIPTION" &&
+        inv.feeType.isRecurring &&
         inv.status !== "PAID" &&
         inv.status !== "CANCELLED" &&
         inv.status !== "WAIVED",

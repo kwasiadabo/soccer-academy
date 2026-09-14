@@ -2,16 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { formatMonthYear } from "@/lib/date"
 
-export type FeeCategory =
-  | "REGISTRATION"
-  | "MONTHLY_SUBSCRIPTION"
-  | "LEVY"
-  | "TOURNAMENT"
-  | "UNIFORM_EQUIPMENT"
-  | "SPECIAL_ACTIVITY"
-  | "DONATION"
-  | "OTHER"
-
 export type InvoiceStatus = "PENDING" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "WAIVED" | "CANCELLED"
 export type PaymentMethod = "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CARD" | "ONLINE_GATEWAY" | "OTHER"
 
@@ -19,19 +9,25 @@ export interface FeeItem {
   id: string
   name: string
   description: string | null
-  defaultAmount: string
   isActive: boolean
 }
 
 export interface FeeTypeItem {
   feeItemId: string
   feeItem: FeeItem
+  // Set per attachment, not on the fee item itself — the same item can be
+  // worth a different amount on a different Fee.
+  amount: string
+  // Bumped automatically whenever the amount is attached or re-priced.
+  updatedAt: string
 }
 
 export interface FeeType {
   id: string
   name: string
-  category: FeeCategory
+  // At most one can have this set and be active at the same time — that's
+  // the fee a new player's registration invoice is created from.
+  isRegistrationFee: boolean
   description: string | null
   isRecurring: boolean
   defaultAmount: string
@@ -63,15 +59,14 @@ export interface Invoice {
 
 export interface CreateFeeTypeInput {
   name: string
-  category: FeeCategory
   description?: string
   isRecurring?: boolean
+  isRegistrationFee?: boolean
 }
 
 export interface CreateFeeItemInput {
   name: string
   description?: string
-  defaultAmount: number
 }
 
 const QUERY_KEYS = {
@@ -90,13 +85,13 @@ export function remainingBalance(invoice: Invoice): number {
   return Number(invoice.amount) - Number(invoice.discountAmount) - amountPaid(invoice)
 }
 
-// Recurring monthly-subscription invoices carry no per-month description, so their fee
-// type name alone ("Monthly Subscription") doesn't say which month it's for — append it
-// from the invoice's issued date. Falls back to the invoice's own description, then the
-// bare fee type name for every other (non-recurring) category.
+// Recurring invoices carry no per-month description, so their fee type name
+// alone ("Monthly Subscription") doesn't say which month it's for — append it
+// from the invoice's issued date. Falls back to the invoice's own description,
+// then the bare fee type name for every other (non-recurring) fee.
 export function invoiceDisplayLabel(invoice: Pick<Invoice, "description" | "issuedAt" | "feeType">): string {
   if (invoice.description) return invoice.description
-  if (invoice.feeType.category === "MONTHLY_SUBSCRIPTION") {
+  if (invoice.feeType.isRecurring) {
     return `${invoice.feeType.name} - ${formatMonthYear(invoice.issuedAt)}`
   }
   return invoice.feeType.name
@@ -149,11 +144,13 @@ export function useUpdateFeeType(id: string) {
   })
 }
 
+// Also used to re-price an already-attached item — the backend upserts on
+// (feeTypeId, feeItemId), so calling this again with a new amount updates it.
 export function useAddFeeTypeItem() {
   const invalidate = useInvalidateFeeTypes()
   return useMutation({
-    mutationFn: ({ feeTypeId, feeItemId }: { feeTypeId: string; feeItemId: string }) =>
-      api.post<FeeType>(`/finance/fee-types/${feeTypeId}/items`, { feeItemId }),
+    mutationFn: ({ feeTypeId, feeItemId, amount }: { feeTypeId: string; feeItemId: string; amount: number }) =>
+      api.post<FeeType>(`/finance/fee-types/${feeTypeId}/items`, { feeItemId, amount }),
     onSuccess: invalidate,
   })
 }
@@ -208,7 +205,7 @@ export function useCreateFeeItem() {
 export function useUpdateFeeItem(id: string) {
   const invalidate = useInvalidateFeeItems()
   return useMutation({
-    mutationFn: (input: Partial<{ name: string; description: string; defaultAmount: number; isActive: boolean }>) =>
+    mutationFn: (input: Partial<{ name: string; description: string; isActive: boolean }>) =>
       api.patch<FeeItem>(`/finance/fee-items/${id}`, input),
     onSuccess: invalidate,
   })
@@ -288,7 +285,6 @@ export interface PaymentReportRow {
   invoiceNumber: string
   feeTypeId: string
   feeTypeName: string
-  feeTypeCategory: FeeCategory
   amount: number
 }
 

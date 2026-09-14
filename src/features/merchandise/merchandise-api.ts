@@ -136,6 +136,52 @@ export function usePendingOrderCount(enabled = true) {
   })
 }
 
+export type OrdersReportStatus = "SOLD" | "PENDING"
+
+export interface OrdersReportRow {
+  orderId: string
+  invoiceNumber: string | null
+  date: string
+  status: OrdersReportStatus
+  player: { id: string; firstName: string; lastName: string; playerCode: string | null }
+  productName: string
+  category: ProductCategory
+  sizeLabel: string
+  quantity: number
+  unitPriceAtOrder: number
+  lineTotal: number
+}
+
+export interface OrdersReport {
+  rows: OrdersReportRow[]
+  summary: {
+    totalAmount: number
+    itemCount: number
+    orderCount: number
+    byProduct: { productName: string; quantity: number; total: number }[]
+  }
+}
+
+export interface OrdersReportFilters {
+  from?: string
+  to?: string
+  status?: OrdersReportStatus
+}
+
+export function useOrdersReport(filters: OrdersReportFilters) {
+  return useQuery({
+    queryKey: ["merchandise", "orders-report", filters] as const,
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (filters.from) params.set("from", filters.from)
+      if (filters.to) params.set("to", filters.to)
+      if (filters.status) params.set("status", filters.status)
+      const qs = params.toString()
+      return api.get<OrdersReport>(`/merchandise/orders/report${qs ? `?${qs}` : ""}`)
+    },
+  })
+}
+
 export function useUpdateOrderStatus(orderId: string) {
   const queryClient = useQueryClient()
   return useMutation({

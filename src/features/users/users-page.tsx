@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { Link } from "react-router-dom"
 import { Plus, KeyRound, Pencil, Trash2, Ban, CheckCircle2, Search, X } from "lucide-react"
 import { ROLE_NAMES } from "@/lib/shared-types"
 
@@ -27,6 +28,7 @@ import { LoadingState } from "@/design-system/loading-state"
 import { ErrorState } from "@/design-system/error-state"
 import { StatusBadge } from "@/design-system/status-badge"
 import { ApiError } from "@/lib/api-client"
+import { useCoaches, STAFF_ROLE_LABELS } from "@/features/coaches/coaches-api"
 import {
   useUsers,
   useCreateUser,
@@ -37,29 +39,34 @@ import {
 } from "./users-api"
 
 const ALL_ROLES = Object.values(ROLE_NAMES)
+// Only staff roles can be granted through the "create user" flow — every
+// account there must belong to an already-registered Coach (staff) record,
+// and Parent/Player accounts come from a guardian's own "grant portal
+// access" flow instead (see CreateUserDto on the API for the same list).
+const STAFF_ROLES = [ROLE_NAMES.ADMIN, ROLE_NAMES.RECEPTIONIST, ROLE_NAMES.HEAD_COACH, ROLE_NAMES.COACH]
 const ALL_STATUSES = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const
 
 const createSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  coachId: z.string().min(1, "Select a staff member"),
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  phone: z.string().optional(),
   roles: z.array(z.string()).min(1, "Select at least one role"),
   mustChangePassword: z.boolean(),
 })
 type CreateFormValues = z.infer<typeof createSchema>
 
 function RoleCheckboxes({
+  roles: roleOptions,
   selected,
   onToggle,
 }: {
+  roles: readonly string[]
   selected: string[]
   onToggle: (role: string) => void
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
-      {ALL_ROLES.map((role) => (
+      {roleOptions.map((role) => (
         <label key={role} className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={selected.includes(role)} onChange={() => onToggle(role)} />
           {role}
@@ -71,8 +78,16 @@ function RoleCheckboxes({
 
 function CreateUserDialog({ onDone }: { onDone: () => void }) {
   const createUser = useCreateUser()
+  const { data: coaches, isLoading: coachesLoading } = useCoaches()
   const [serverError, setServerError] = useState<string | null>(null)
   const [roles, setRoles] = useState<string[]>([])
+
+  // Only registered staff without a login yet can be granted one here — a
+  // Coach already linked to a User (userId set) has nothing left to create.
+  const availableStaff = useMemo(
+    () => (coaches ?? []).filter((c) => !c.userId && c.isActive),
+    [coaches],
+  )
 
   const {
     register,
@@ -87,26 +102,22 @@ function CreateUserDialog({ onDone }: { onDone: () => void }) {
   })
 
   const mustChangePassword = watch("mustChangePassword")
+  const selectedCoachId = watch("coachId")
+  const selectedCoach = availableStaff.find((c) => c.id === selectedCoachId)
 
   const toggleRole = (role: string) => {
     const next = roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role]
     setRoles(next)
     setValue("roles", next, { shouldValidate: true })
-    // Default to requiring a password change whenever Parent is selected.
-    if (role === ROLE_NAMES.PARENT && !roles.includes(role)) {
-      setValue("mustChangePassword", true)
-    }
   }
 
   const onSubmit = async (values: CreateFormValues) => {
     setServerError(null)
     try {
       await createUser.mutateAsync({
+        coachId: values.coachId,
         email: values.email,
         password: values.password,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        phone: values.phone || undefined,
         roleNames: values.roles,
         mustChangePassword: values.mustChangePassword,
       })
@@ -118,32 +129,54 @@ function CreateUserDialog({ onDone }: { onDone: () => void }) {
     }
   }
 
+  if (!coachesLoading && availableStaff.length === 0) {
+    return (
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create user</DialogTitle>
+          <DialogDescription>Only registered staff can have a user account.</DialogDescription>
+        </DialogHeader>
+        <EmptyState
+          title="No staff without an account"
+          description="Every active staff member already has a login, or none have been registered yet."
+          action={
+            <Button asChild size="sm">
+              <Link to="/admin/staff">Go to Staff</Link>
+            </Button>
+          }
+        />
+      </DialogContent>
+    )
+  }
+
   return (
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Create user</DialogTitle>
-        <DialogDescription>Add a new account and assign its roles.</DialogDescription>
+        <DialogDescription>Grant portal access to a registered staff member.</DialogDescription>
       </DialogHeader>
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="space-y-1.5">
+          <Label htmlFor="user-coach">Staff member</Label>
+          <Select id="user-coach" {...register("coachId")} disabled={coachesLoading}>
+            <option value="">{coachesLoading ? "Loading staff…" : "Select a staff member"}</option>
+            {availableStaff.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.lastName}, {c.firstName} — {STAFF_ROLE_LABELS[c.role]}
+              </option>
+            ))}
+          </Select>
+          {errors.coachId ? <p className="text-xs text-destructive">{errors.coachId.message}</p> : null}
+          {selectedCoach?.email ? (
+            <p className="text-xs text-muted-foreground">On file: {selectedCoach.email}</p>
+          ) : null}
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="user-first-name">First name</Label>
-            <Input id="user-first-name" {...register("firstName")} />
-            {errors.firstName ? <p className="text-xs text-destructive">{errors.firstName.message}</p> : null}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="user-last-name">Last name</Label>
-            <Input id="user-last-name" {...register("lastName")} />
-            {errors.lastName ? <p className="text-xs text-destructive">{errors.lastName.message}</p> : null}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="user-email">Email</Label>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="user-email">Login email</Label>
             <Input id="user-email" type="email" {...register("email")} />
             {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="user-phone">Phone</Label>
-            <Input id="user-phone" {...register("phone")} />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="user-password">Temporary password</Label>
@@ -154,7 +187,7 @@ function CreateUserDialog({ onDone }: { onDone: () => void }) {
 
         <div className="space-y-2">
           <Label>Roles</Label>
-          <RoleCheckboxes selected={roles} onToggle={toggleRole} />
+          <RoleCheckboxes roles={STAFF_ROLES} selected={roles} onToggle={toggleRole} />
           {errors.roles ? <p className="text-xs text-destructive">{errors.roles.message}</p> : null}
         </div>
 
@@ -262,7 +295,7 @@ function EditUserDialog({ user, onDone }: { user: AdminUser; onDone: () => void 
 
         <div className="space-y-2">
           <Label>Roles</Label>
-          <RoleCheckboxes selected={roles} onToggle={toggleRole} />
+          <RoleCheckboxes roles={ALL_ROLES} selected={roles} onToggle={toggleRole} />
         </div>
 
         {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}

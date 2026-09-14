@@ -38,24 +38,26 @@ export function isSameDay(a: string | Date, b: string | Date): boolean {
   )
 }
 
-// Training is a fixed weekly fixture on Saturday (see TrainingService#resolveSaturday on the
-// API) — the "current" training day is the most recent Saturday on or before today, not
-// necessarily the literal calendar date. A session dated for that day should still read as
-// "this week's session" on any day between Saturday and the following Friday.
-function resolveCurrentTrainingDate(): Date {
+// Training is a recurring weekly fixture on a configurable day (see TrainingService#getSchedule
+// on the API — defaults to Saturday) — the "current" training day is the most recent occurrence
+// of that day on or before today, not necessarily the literal calendar date. A session dated for
+// that day should still read as "this week's session" for the full week that follows it.
+function resolveCurrentTrainingDate(fixtureDayOfWeek: number): Date {
   const now = new Date()
-  const daysSinceSaturday = (now.getDay() + 1) % 7 // now.getDay(): 0 Sun..6 Sat
+  const daysSinceFixtureDay = (now.getDay() - fixtureDayOfWeek + 7) % 7 // now.getDay(): 0 Sun..6 Sat
   const d = new Date(now)
-  d.setDate(d.getDate() - daysSinceSaturday)
+  d.setDate(d.getDate() - daysSinceFixtureDay)
   return d
 }
 
 // Coaches can also create one-off sessions on other days (a makeup session, a holiday camp
-// slot, etc). Those won't ever match isCurrentTrainingDay, so this widens the window to the
-// full training week (Saturday through the following Friday) for "what's on this week" views.
-export function isWithinCurrentTrainingWeek(dateStr: string | Date): boolean {
+// slot, etc). Those won't ever match resolveCurrentTrainingDate, so this widens the window to
+// the full training week (the fixture day through the following 6 days) for "what's on this
+// week" views, and for deciding whether a just-passed fixture session is still open for
+// attendance to be marked/corrected rather than being locked as historical.
+export function isWithinCurrentTrainingWeek(dateStr: string | Date, fixtureDayOfWeek: number): boolean {
   const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr
-  const start = resolveCurrentTrainingDate()
+  const start = resolveCurrentTrainingDate(fixtureDayOfWeek)
   start.setHours(0, 0, 0, 0)
   const end = new Date(start)
   end.setDate(end.getDate() + 7)

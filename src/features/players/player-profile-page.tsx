@@ -67,6 +67,11 @@ import { PlayerPhoto } from "./player-photo"
 import { PlayerAttendanceTab } from "./player-attendance-tab"
 import { useApprovePlayer, usePlayer, useUpdatePlayer, type Player } from "./players-api"
 import { RegistrationPaymentCollector } from "./registration-payment-collector"
+import {
+  RegistrationFeeItemsSelector,
+  RegistrationFeeLoadState,
+  useRegistrationFeeType,
+} from "./registration-fee-selector"
 
 const PROFILE_TABS = ["overview", "development", "financial", "statement", "team", "attendance"]
 
@@ -584,6 +589,66 @@ function TeamAssignmentCard({ player }: { player: NonNullable<ReturnType<typeof 
   )
 }
 
+// Lets staff pick which of the registration fee's items apply to this
+// specific player (e.g. a returning player might skip the jersey) before
+// generating the invoice, instead of always charging the fee's full total.
+function ProceedToPaymentDialog({
+  approvePlayer,
+  onError,
+}: {
+  approvePlayer: ReturnType<typeof useApprovePlayer>
+  onError: (message: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const { registrationFeeType, isLoading, isError, refetch } = useRegistrationFeeType()
+
+  const onOpenChange = (next: boolean) => {
+    setOpen(next)
+    if (next) {
+      onError("")
+      setSelectedIds(registrationFeeType?.items.map((link) => link.feeItemId) ?? [])
+    }
+  }
+
+  const onConfirm = async () => {
+    try {
+      await approvePlayer.mutateAsync(selectedIds)
+      setOpen(false)
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : "Action failed. Please try again.")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button size="sm">Proceed to payment</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Registration fee</DialogTitle>
+          <DialogDescription>Pick which items apply to this player.</DialogDescription>
+        </DialogHeader>
+        <RegistrationFeeLoadState
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={() => void refetch()}
+          hasFeeType={!!registrationFeeType}
+        />
+        {registrationFeeType ? (
+          <RegistrationFeeItemsSelector feeType={registrationFeeType} selectedIds={selectedIds} onChange={setSelectedIds} />
+        ) : null}
+        <DialogFooter>
+          <Button onClick={() => void onConfirm()} disabled={approvePlayer.isPending || !registrationFeeType}>
+            {approvePlayer.isPending ? "Preparing invoice…" : "Confirm & generate invoice"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>()
   const navigate = useNavigate()
@@ -603,15 +668,6 @@ export function PlayerProfilePage() {
     player?.status === "PENDING_REGISTRATION_PAYMENT"
   const requestedTab = searchParams.get("tab")
   const initialTab = requestedTab && PROFILE_TABS.includes(requestedTab) ? requestedTab : "overview"
-
-  const runAction = async (action: () => Promise<unknown>) => {
-    setActionError(null)
-    try {
-      await action()
-    } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : "Action failed. Please try again.")
-    }
-  }
 
   return (
     <DashboardLayout title="Player Profile" navItems={navItems}>
@@ -758,13 +814,7 @@ export function PlayerProfilePage() {
                           No invoice yet — proceed to payment to generate the registration invoice.
                         </p>
                       )}
-                      <Button
-                        size="sm"
-                        disabled={approvePlayer.isPending}
-                        onClick={() => void runAction(() => approvePlayer.mutateAsync())}
-                      >
-                        {approvePlayer.isPending ? "Preparing invoice…" : "Proceed to payment"}
-                      </Button>
+                      <ProceedToPaymentDialog approvePlayer={approvePlayer} onError={setActionError} />
                     </CardContent>
                   </Card>
                 ) : null}

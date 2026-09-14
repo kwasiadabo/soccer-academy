@@ -1,14 +1,19 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Outlet, Route, Routes } from "react-router-dom"
 import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { useAuth } from "@/app/auth-context"
 import { ProtectedRoute } from "@/app/protected-route"
+import { PlatformAuthProvider } from "@/app/platform-auth-context"
+import { PlatformProtectedRoute } from "@/app/platform-protected-route"
+import { PlatformLoginPage } from "@/features/platform-admin/platform-login-page"
+import { PlatformDashboardPage } from "@/features/platform-admin/platform-dashboard-page"
 import { homePathForRoles } from "@/app/role-routes"
 import { LoginPage } from "@/features/auth/login-page"
 import { ForgotPasswordPage } from "@/features/auth/forgot-password-page"
 import { ResetPasswordPage } from "@/features/auth/reset-password-page"
 import { ForceChangePasswordPage } from "@/features/auth/force-change-password-page"
 import { LandingPage } from "@/features/marketing/landing-page"
+import { SamsLandingPage } from "@/features/marketing/sams-landing-page"
 import { AdminDashboard } from "@/features/dashboard-admin/admin-dashboard"
 import { StaffPage } from "@/features/dashboard-admin/staff-page"
 import { UsersPage } from "@/features/users/users-page"
@@ -46,6 +51,7 @@ import { TrainingPlanListPage } from "@/features/training/training-plan-list-pag
 import { TrainingPlanEditorPage } from "@/features/training/training-plan-editor-page"
 import { TrainingSessionListPage } from "@/features/training/training-session-list-page"
 import { SessionAttendancePage } from "@/features/training/session-attendance-page"
+import { SessionManagementPage } from "@/features/training/session-management-page"
 import { ParentDashboard } from "@/features/dashboard-parent/parent-dashboard"
 import { ChildDetailPage } from "@/features/dashboard-parent/child-detail-page"
 import { IssuesListPage } from "@/features/dashboard-parent/issues-list-page"
@@ -62,6 +68,9 @@ import { MyOrderDetailPage } from "@/features/dashboard-parent/shop/my-order-det
 import { StaffOrdersPage } from "@/features/merchandise/staff-orders-page"
 import { StaffOrderDetailPage } from "@/features/merchandise/staff-order-detail-page"
 import { StaffProductsPage } from "@/features/merchandise/staff-products-page"
+import { OrdersReportPage } from "@/features/merchandise/orders-report-page"
+import { BillingPage } from "@/features/billing/billing-page"
+import { AcademySettingsPage } from "@/features/academy-settings/academy-settings-page"
 
 function RootRedirect() {
   const { user, isLoading } = useAuth()
@@ -69,7 +78,7 @@ function RootRedirect() {
   if (user) {
     return <Navigate to={user.mustChangePassword ? "/change-password" : homePathForRoles(user.roles)} replace />
   }
-  return <LandingPage />
+  return <SamsLandingPage />
 }
 
 export default function App() {
@@ -79,6 +88,19 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/" element={<RootRedirect />} />
+      {/* This academy's own public page (gallery, player-of-the-week, "join us") —
+          distinct from the SAMS product page now at "/". */}
+      <Route path="/about" element={<LandingPage />} />
+
+      {/* The platform-operator control plane — a separate actor type from every
+          academy's own users (see PlatformAuthProvider), so it gets its own
+          auth provider scoped to just this subtree rather than the app-wide one. */}
+      <Route path="/platform" element={<PlatformAuthProvider><Outlet /></PlatformAuthProvider>}>
+        <Route path="login" element={<PlatformLoginPage />} />
+        <Route element={<PlatformProtectedRoute />}>
+          <Route index element={<PlatformDashboardPage />} />
+        </Route>
+      </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route path="/change-password" element={<ForceChangePasswordPage />} />
@@ -88,6 +110,8 @@ export default function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/staff" element={<StaffPage />} />
         <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin/billing" element={<BillingPage />} />
+        <Route path="/admin/settings" element={<AcademySettingsPage />} />
         <Route path="/admin/assessment-templates" element={<AdminAssessmentTemplatesPage />} />
         <Route path="/admin/staff/:coachId" element={<AdminCoachProfilePage />} />
       </Route>
@@ -122,6 +146,9 @@ export default function App() {
         <Route path="/head-coach/matches/:matchId" element={<HeadCoachMatchDetailPage />} />
         <Route path="/head-coach/assessments" element={<HeadCoachPlayerRatingsPage />} />
         <Route path="/head-coach/players/:playerId/ratings" element={<HeadCoachPlayerRatingsDetailPage />} />
+        <Route path="/head-coach/training-sessions" element={<TrainingSessionListPage />} />
+        <Route path="/head-coach/training-sessions/:sessionId" element={<SessionAttendancePage />} />
+        <Route path="/head-coach/session-management" element={<SessionManagementPage />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLE_NAMES.COACH, ROLE_NAMES.ADMIN]} />}>
         <Route path="/coach" element={<CoachDashboard />} />
@@ -157,6 +184,7 @@ export default function App() {
         <Route path="/issues" element={<StaffIssuesPage />} />
         <Route path="/issues/:issueId" element={<StaffIssueDetailPage />} />
         <Route path="/merchandise/orders" element={<StaffOrdersPage />} />
+        <Route path="/merchandise/orders/report" element={<OrdersReportPage />} />
         <Route path="/merchandise/orders/:orderId" element={<StaffOrderDetailPage />} />
         <Route path="/merchandise/products" element={<StaffProductsPage />} />
         <Route path="/gallery/manage" element={<StaffGalleryPage />} />

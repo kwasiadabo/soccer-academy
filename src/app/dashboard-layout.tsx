@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import type { LucideIcon } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { ROLE_NAMES } from "@/lib/shared-types"
 import {
   AlertOctagon,
@@ -27,12 +28,14 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  Settings,
   Shield,
   ShoppingBag,
   Star,
   Tag,
   Trophy,
   Users,
+  Wallet,
   X,
 } from "lucide-react"
 
@@ -70,23 +73,28 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, section: "Admin" },
   { to: "/admin/staff", label: "Staff", icon: Users, section: "Admin" },
   { to: "/admin/users", label: "Users", icon: KeyRound, section: "Admin" },
+  { to: "/admin/billing", label: "Billing", icon: Wallet, section: "Admin" },
+  { to: "/admin/settings", label: "Academy Settings", icon: Settings, section: "Admin" },
   { to: "/issues", label: "Issues", icon: LifeBuoy, section: "Admin" },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag, section: "Admin" },
+  { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart, section: "Admin" },
   { to: "/merchandise/products", label: "Products", icon: Package, section: "Admin" },
   { to: "/gallery/manage", label: "Gallery", icon: Images, section: "Admin" },
 
   { to: "/receptionist", label: "Players", icon: ClipboardList, end: true, section: "Receptionist" },
   { to: "/receptionist/birthdays", label: "Birthdays", icon: Cake, section: "Receptionist" },
+  { to: "/receptionist/training-sessions", label: "Training Attendance", icon: ClipboardCheck, section: "Receptionist" },
   { to: "/receptionist/finance", label: "Payments & Debtors", icon: CreditCard, section: "Receptionist" },
   { to: "/receptionist/finance/statement", label: "Player Statement", icon: FileText, section: "Receptionist" },
   { to: "/receptionist/finance/monthly-billing", label: "Monthly Billing", icon: CalendarDays, section: "Receptionist" },
   { to: "/receptionist/finance/report", label: "Payments Report", icon: FileBarChart, section: "Receptionist" },
   { to: "/receptionist/finance/aging", label: "Owing Report", icon: AlertOctagon, section: "Receptionist" },
-  { to: "/receptionist/finance/fee-types", label: "Fee Types", icon: Tag, section: "Receptionist" },
+  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag, section: "Receptionist" },
 
   { to: "/head-coach", label: "Dashboard", icon: Award, end: true, section: "Head Coach" },
   { to: "/head-coach/approvals", label: "Approvals", icon: CheckCircle2, section: "Head Coach" },
   { to: "/head-coach/players", label: "Players", icon: IdCard, section: "Head Coach" },
+  { to: "/head-coach/training-sessions", label: "Attendance", icon: ClipboardCheck, section: "Head Coach" },
   { to: "/receptionist/finance", label: "Payments & Debtors", icon: CreditCard, section: "Head Coach" },
   { to: "/head-coach/teams", label: "Teams", icon: Shield, section: "Head Coach" },
   { to: "/head-coach/coaches", label: "Coaches", icon: Users, section: "Head Coach" },
@@ -257,6 +265,7 @@ function SidebarNav({
 }
 
 function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
+  const { name } = useAcademyBranding()
   return (
     <div
       className={cn(
@@ -265,7 +274,9 @@ function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
       )}
     >
       <AcademyLogo className="size-9 shrink-0" chip />
-      {!collapsed ? <span className="text-sm font-bold tracking-tight text-sidebar-foreground">Kapikids</span> : null}
+      {!collapsed ? (
+        <span className="truncate text-sm font-bold tracking-tight text-sidebar-foreground">{name}</span>
+      ) : null}
     </div>
   )
 }
@@ -300,6 +311,7 @@ function HeaderBar({
   showMenuButton: boolean
 }) {
   const { user, logout } = useAuth()
+  const { name: academyName } = useAcademyBranding()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -329,8 +341,13 @@ function HeaderBar({
             </Button>
           ) : null}
           <div>
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Kapikids Soccer Academy</p>
-            <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{academyName}</p>
+            <h1
+              className="text-xl tracking-tight uppercase"
+              style={{ fontFamily: "Anton, sans-serif" }}
+            >
+              {title}
+            </h1>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -378,6 +395,7 @@ function getStoredSidebarCollapsed(): boolean {
 
 export function DashboardLayout({ title, children, navItems }: DashboardLayoutProps) {
   const { hasRole } = useAuth()
+  const { name: academyName } = useAcademyBranding()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(getStoredSidebarCollapsed)
   const isAdmin = hasRole(ROLE_NAMES.ADMIN)
@@ -441,7 +459,7 @@ export function DashboardLayout({ title, children, navItems }: DashboardLayoutPr
             <div className="flex h-16 items-center justify-between border-b border-sidebar-border pl-4 pr-2">
               <div className="flex items-center gap-2.5">
                 <AcademyLogo className="size-9" chip />
-                <span className="text-sm font-bold tracking-tight text-sidebar-foreground">Kapikids</span>
+                <span className="truncate text-sm font-bold tracking-tight text-sidebar-foreground">{academyName}</span>
               </div>
               <Button
                 variant="ghost"

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import type { AuthResponse, AuthUser } from "@/lib/shared-types"
 import { api, setAccessToken, setSessionExpiredHandler } from "@/lib/api-client"
@@ -35,8 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession])
 
   // Attempt to restore a session on load via the refresh cookie.
+  // The refresh token rotates on every call, and StrictMode double-invokes this effect in
+  // development — without the ref guard, the second invocation would present the token the
+  // first invocation already rotated away, which the backend's reuse-detection treats as
+  // theft and revokes the session, logging the user straight back out. The guard means this
+  // body only ever truly runs once for the component's lifetime, so — unlike a normal
+  // cleanup-cancellable effect — there's no stale invocation whose result should be
+  // discarded here; gating the setState calls on a per-invocation `cancelled` flag would
+  // just discard the one real result, since StrictMode's phantom cleanup fires before the
+  // fetch resolves, leaving isLoading stuck true forever (a blank app on every load).
+  const hasAttemptedRestore = useRef(false)
   useEffect(() => {
-    let cancelled = false
+    if (hasAttemptedRestore.current) return
+    hasAttemptedRestore.current = true
+
     ;(async () => {
       try {
         const res = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" })
@@ -44,15 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = (await res.json()) as { accessToken: string }
           setAccessToken(data.accessToken)
           const me = await api.get<AuthUser>("/auth/me").catch(() => null)
-          if (!cancelled) setUser(me)
+          setUser(me)
         }
       } finally {
-        if (!cancelled) setIsLoading(false)
+        setIsLoading(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {

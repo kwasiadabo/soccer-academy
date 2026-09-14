@@ -1,3 +1,5 @@
+import { getAcademySlug } from "./tenant";
+
 let accessToken: string | null = null;
 let onSessionExpired: (() => void) | null = null;
 
@@ -30,6 +32,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 async function rawRequest(path: string, options: RequestOptions = {}): Promise<Response> {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
+  headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -42,16 +45,34 @@ async function rawRequest(path: string, options: RequestOptions = {}): Promise<R
   });
 }
 
+// The refresh token rotates on every call, so two concurrent refreshes (e.g. several
+// React Query requests hitting a 401 at once) would race: whichever loses presents a
+// token the winner already rotated away, which the backend's reuse-detection treats as
+// theft and revokes the whole session. Sharing one in-flight request keeps concurrent
+// callers from ever racing each other.
+let refreshInFlight: Promise<boolean> | null = null;
+
 async function tryRefresh(): Promise<boolean> {
-  try {
-    const res = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { accessToken: string };
-    setAccessToken(data.accessToken);
-    return true;
-  } catch {
-    return false;
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch("/api/auth/refresh", {
+          method: "POST",
+          credentials: "include",
+          headers: { "X-Academy-Slug": getAcademySlug() },
+        });
+        if (!res.ok) return false;
+        const data = (await res.json()) as { accessToken: string };
+        setAccessToken(data.accessToken);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
   }
+  return refreshInFlight;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -88,6 +109,7 @@ export const api = {
 
 async function rawUpload(path: string, formData: FormData): Promise<Response> {
   const headers = new Headers();
+  headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -112,6 +134,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 
 export async function fetchAuthorizedBlob(path: string): Promise<Blob> {
   const headers = new Headers();
+  headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }

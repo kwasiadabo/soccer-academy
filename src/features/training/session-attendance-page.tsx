@@ -1,4 +1,4 @@
-import { formatDate, formatTime, isPastDate } from "@/lib/date"
+import { formatDate, formatTime, isPastDate, isWithinCurrentTrainingWeek } from "@/lib/date"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -10,15 +10,12 @@ import {
   CheckCheck,
   ClipboardCheck,
   Clock,
-  Dumbbell,
   MessageSquarePlus,
-  Plus,
   Search,
   UserCheck,
   UserPlus,
   Users,
   UserX,
-  X,
 } from "lucide-react"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
@@ -39,122 +36,120 @@ import { ROLE_NAMES } from "@/lib/shared-types"
 import { useAuth } from "@/app/auth-context"
 import { COACH_NAV_ITEMS } from "@/features/dashboard-coach/coach-dashboard"
 import { RECEPTIONIST_NAV_ITEMS } from "@/features/dashboard-receptionist/receptionist-dashboard"
+import { HEAD_COACH_NAV_ITEMS } from "@/features/dashboard-head-coach/head-coach-dashboard"
 import { PlayerPhoto } from "@/features/players/player-photo"
 import { RemarkDialog, type AssessablePlayer } from "@/features/assessments/player-assessment-dialogs"
 import {
-  useAddSessionActivity,
   useRecordAttendance,
-  useRemoveSessionActivity,
+  useTrainingSchedule,
   useTrainingSession,
   type AttendanceStatus,
   type SessionWithRoster,
 } from "./training-api"
-
-const sessionActivitySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-})
-type SessionActivityFormValues = z.infer<typeof sessionActivitySchema>
-
-function SessionActivitiesCard({ session, isHistorical }: { session: SessionWithRoster; isHistorical: boolean }) {
-  const addActivity = useAddSessionActivity(session.id)
-  const removeActivity = useRemoveSessionActivity(session.id)
-  const [error, setError] = useState<string | null>(null)
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<SessionActivityFormValues>({ resolver: zodResolver(sessionActivitySchema) })
-
-  const onAdd = async (values: SessionActivityFormValues) => {
-    setError(null)
-    try {
-      await addActivity.mutateAsync(values)
-      reset()
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add activity.")
-    }
-  }
-
-  const onRemove = async (activityId: string) => {
-    setError(null)
-    try {
-      await removeActivity.mutateAsync(activityId)
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not remove activity.")
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center gap-3 space-y-0">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-chart-3/10 text-chart-3">
-          <Dumbbell className="size-4.5" />
-        </div>
-        <div>
-          <CardTitle className="text-base">Session Activities</CardTitle>
-          <CardDescription>
-            Set the activities for this session — players are rated against these when assessed.
-          </CardDescription>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {session.sessionActivities.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No activities added yet.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {session.sessionActivities.map((activity) => (
-              <span
-                key={activity.id}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 py-1 pr-1.5 pl-3 text-sm"
-              >
-                {activity.name}
-                <button
-                  type="button"
-                  aria-label={`Remove ${activity.name}`}
-                  onClick={() => void onRemove(activity.id)}
-                  className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <X className="size-3.5" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {isHistorical ? null : (
-          <form className="flex items-end gap-2 pt-1" onSubmit={handleSubmit(onAdd)} noValidate>
-            <div className="flex-1 space-y-1.5">
-              <Label htmlFor="session-activity-name">Activity name</Label>
-              <Input id="session-activity-name" placeholder="Passing" {...register("name")} />
-              {errors.name ? <p className="text-xs text-destructive">{errors.name.message}</p> : null}
-            </div>
-            <Button type="submit" variant="outline" disabled={isSubmitting}>
-              <Plus /> Add
-            </Button>
-          </form>
-        )}
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      </CardContent>
-    </Card>
-  )
-}
 
 const EXCEPTION_OPTIONS: AttendanceStatus[] = ["ABSENT", "LATE", "EXCUSED", "INJURED"]
 const STATUS_FILTER_OPTIONS: AttendanceStatus[] = ["PRESENT", "ABSENT", "LATE", "EXCUSED", "INJURED"]
 
 type RosterPlayer = SessionWithRoster["roster"][number]
 
+// A roster player nobody has explicitly marked is assumed absent rather than left blank —
+// this synthesizes that assumption as a displayable row (id prefixed so it never collides
+// with a real TrainingAttendance id) without writing anything until it's actually edited.
+interface DisplayAttendanceRow {
+  id: string
+  player: RosterPlayer
+  status: AttendanceStatus
+  recordedAt: string | null
+  recordedByUser: { firstName: string; lastName: string } | null
+  isAssumed: boolean
+}
+
+function buildDisplayRows(session: SessionWithRoster): DisplayAttendanceRow[] {
+  const byPlayerId = new Map(session.attendance.map((a) => [a.playerId, a]))
+  return session.roster.map((player) => {
+    const recorded = byPlayerId.get(player.id)
+    if (recorded) {
+      return {
+        id: recorded.id,
+        player,
+        status: recorded.status,
+        recordedAt: recorded.recordedAt,
+        recordedByUser: recorded.recordedByUser,
+        isAssumed: false,
+      }
+    }
+    return {
+      id: `assumed-${player.id}`,
+      player,
+      status: "ABSENT",
+      recordedAt: null,
+      recordedByUser: null,
+      isAssumed: true,
+    }
+  })
+}
+
+// Lets staff correct any row inline — including one that's only an assumed-absent default,
+// which turns it into a real recorded attendance entry the moment it's changed.
+function AttendanceStatusCell({
+  sessionId,
+  playerId,
+  status,
+  isAssumed,
+  disabled,
+}: {
+  sessionId: string
+  playerId: string
+  status: AttendanceStatus
+  isAssumed: boolean
+  disabled: boolean
+}) {
+  const recordAttendance = useRecordAttendance(sessionId)
+  const [error, setError] = useState<string | null>(null)
+
+  const onChange = async (next: AttendanceStatus) => {
+    if (next === status) return
+    setError(null)
+    try {
+      await recordAttendance.mutateAsync([{ playerId, status: next }])
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not update attendance.")
+    }
+  }
+
+  if (disabled) {
+    return <StatusBadge status={status} />
+  }
+
+  return (
+    <div className="space-y-1">
+      <Select
+        value={status}
+        disabled={recordAttendance.isPending}
+        onChange={(e) => void onChange(e.target.value as AttendanceStatus)}
+        className="h-8 w-36"
+      >
+        {STATUS_FILTER_OPTIONS.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </Select>
+      {isAssumed ? <p className="text-[11px] text-muted-foreground">Assumed — not confirmed</p> : null}
+      {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
+    </div>
+  )
+}
+
 function UnmarkedRow({
   player,
   sessionId,
-  isReceptionist,
+  restricted,
   onNote,
 }: {
   player: RosterPlayer
   sessionId: string
-  isReceptionist: boolean
+  restricted: boolean
   onNote: () => void
 }) {
   const recordAttendance = useRecordAttendance(sessionId)
@@ -195,7 +190,7 @@ function UnmarkedRow({
               </option>
             ))}
           </Select>
-          {isReceptionist ? null : (
+          {restricted ? null : (
             <Button
               variant="ghost"
               size="icon-sm"
@@ -216,13 +211,13 @@ function MarkAttendanceModal({
   open,
   onOpenChange,
   session,
-  isReceptionist,
+  restricted,
   onNote,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   session: SessionWithRoster
-  isReceptionist: boolean
+  restricted: boolean
   onNote: (player: AssessablePlayer) => void
 }) {
   const [search, setSearch] = useState("")
@@ -309,7 +304,7 @@ function MarkAttendanceModal({
                     key={player.id}
                     player={player}
                     sessionId={session.id}
-                    isReceptionist={isReceptionist}
+                    restricted={restricted}
                     onNote={() => onNote(player)}
                   />
                 ))
@@ -327,15 +322,30 @@ export function SessionAttendancePage() {
   const navigate = useNavigate()
   const { hasRole } = useAuth()
   const isReceptionist = hasRole(ROLE_NAMES.RECEPTIONIST) && !hasRole(ROLE_NAMES.COACH)
-  const basePath = isReceptionist ? "/receptionist/training-sessions" : "/coach/training-sessions"
+  const isHeadCoach = hasRole(ROLE_NAMES.HEAD_COACH) && !hasRole(ROLE_NAMES.COACH)
+  // Reception and the Head Coach only record attendance for sessions a Coach has already
+  // scheduled — same restricted view (no assessment notes).
+  const restricted = isReceptionist || isHeadCoach
+  const basePath = isReceptionist
+    ? "/receptionist/training-sessions"
+    : isHeadCoach
+      ? "/head-coach/training-sessions"
+      : "/coach/training-sessions"
   const { data: session, isLoading, isError, refetch } = useTrainingSession(sessionId)
-  const isHistorical = session ? isPastDate(session.date) : false
+  const { data: schedule } = useTrainingSchedule()
+  // A session stays open for marking/correcting attendance for the rest of its training week
+  // even once its exact date has passed — e.g. the default Saturday session is still editable
+  // on the following Monday — only locking as historical once a new training week begins.
+  const isHistorical = session
+    ? isPastDate(session.date) && !isWithinCurrentTrainingWeek(session.date, schedule?.dayOfWeek ?? 6)
+    : false
   const [tableSearch, setTableSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [markModalOpen, setMarkModalOpen] = useState(false)
   const [notingPlayer, setNotingPlayer] = useState<AssessablePlayer | null>(null)
 
-  const filteredAttendance = (session?.attendance ?? [])
+  const displayRows = session ? buildDisplayRows(session) : []
+  const filteredAttendance = displayRows
     .filter((a) => !statusFilter || a.status === statusFilter)
     .filter((a) => {
       const q = tableSearch.trim().toLowerCase()
@@ -351,7 +361,10 @@ export function SessionAttendancePage() {
   const notPresentCount = (session?.roster.length ?? 0) - presentCount - lateCount
 
   return (
-    <DashboardLayout title="Take Attendance" navItems={isReceptionist ? RECEPTIONIST_NAV_ITEMS : COACH_NAV_ITEMS}>
+    <DashboardLayout
+      title="Take Attendance"
+      navItems={isReceptionist ? RECEPTIONIST_NAV_ITEMS : isHeadCoach ? HEAD_COACH_NAV_ITEMS : COACH_NAV_ITEMS}
+    >
       <Button variant="ghost" size="sm" className="mb-4" onClick={() => navigate(basePath)}>
         <ArrowLeft /> Back to sessions
       </Button>
@@ -394,18 +407,19 @@ export function SessionAttendancePage() {
             <StatCard icon={Clock} label="Late" value={lateCount} iconClassName="bg-warning/15 text-warning" />
           </div>
 
-          {isReceptionist ? null : <SessionActivitiesCard session={session} isHistorical={isHistorical} />}
           <Card>
           <CardHeader>
-            <CardTitle className="text-base">Marked Players</CardTitle>
-            <CardDescription>Search or filter the roster already marked for this session.</CardDescription>
+            <CardTitle className="text-base">Attendance</CardTitle>
+            <CardDescription>
+              Anyone not explicitly marked is assumed absent — search, filter, or edit any row below to correct it.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search marked players by name or ID"
+                  placeholder="Search players by name or ID"
                   className="pl-9"
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
@@ -421,14 +435,7 @@ export function SessionAttendancePage() {
               </Select>
             </div>
 
-            {session.attendance.length === 0 ? (
-              <EmptyState
-                title="No one marked yet"
-                description={
-                  isHistorical ? "No attendance was recorded for this session." : "Use Mark Attendance above to record arrivals."
-                }
-              />
-            ) : filteredAttendance.length === 0 ? (
+            {filteredAttendance.length === 0 ? (
               <EmptyState title="No players match" description="Try a different search or filter." />
             ) : (
               <Table>
@@ -443,30 +450,38 @@ export function SessionAttendancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAttendance.map((attendance, index) => (
-                    <TableRow key={attendance.id}>
+                  {filteredAttendance.map((row, index) => (
+                    <TableRow key={row.id}>
                       <TableCell className="text-muted-foreground">{index + 1}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2.5">
                           <PlayerPhoto
-                            playerId={attendance.player.id}
-                            photoDocumentId={attendance.player.photoDocumentId}
+                            playerId={row.player.id}
+                            photoDocumentId={row.player.photoDocumentId}
                             size={40}
                           />
                           <span className="font-medium">
-                            {attendance.player.firstName} {attendance.player.lastName}
+                            {row.player.firstName} {row.player.lastName}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {attendance.player.playerCode ?? "—"}
+                        {row.player.playerCode ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={attendance.status} />
+                        <AttendanceStatusCell
+                          sessionId={session.id}
+                          playerId={row.player.id}
+                          status={row.status}
+                          isAssumed={row.isAssumed}
+                          disabled={isHistorical}
+                        />
                       </TableCell>
-                      <TableCell className="tabular-nums">{formatTime(attendance.recordedAt)}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {row.recordedAt ? formatTime(row.recordedAt) : "—"}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {attendance.recordedByUser.firstName} {attendance.recordedByUser.lastName}
+                        {row.recordedByUser ? `${row.recordedByUser.firstName} ${row.recordedByUser.lastName}` : "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -483,7 +498,7 @@ export function SessionAttendancePage() {
           open={markModalOpen}
           onOpenChange={setMarkModalOpen}
           session={session}
-          isReceptionist={isReceptionist}
+          restricted={restricted}
           onNote={setNotingPlayer}
         />
       ) : null}

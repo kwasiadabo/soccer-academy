@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AcademyLogo } from "@/design-system/academy-logo"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { api, ApiError } from "@/lib/api-client"
 
 const resetPasswordSchema = z
@@ -25,6 +26,7 @@ const resetPasswordSchema = z
 type ResetPasswordValues = z.infer<typeof resetPasswordSchema>
 
 export function ResetPasswordPage() {
+  const { name: academyName } = useAcademyBranding()
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token")
   const navigate = useNavigate()
@@ -61,7 +63,7 @@ export function ResetPasswordPage() {
       >
         <div className="mb-6 flex items-center gap-2.5">
           <AcademyLogo className="size-9" chip />
-          <span className="text-sm font-semibold tracking-wide text-foreground">Kapikids Soccer Academy</span>
+          <span className="text-sm font-semibold tracking-wide text-foreground">{academyName}</span>
         </div>
 
         {!token ? (

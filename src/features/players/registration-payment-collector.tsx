@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { AcademyLogo } from "@/design-system/academy-logo"
 import { usePlayerInvoices } from "@/features/finance/finance-api"
 import { ApiError } from "@/lib/api-client"
@@ -55,7 +56,7 @@ export function RegistrationPaymentCollector({
   // what's itemized on screen instead of two independently-computed numbers.
   const itemsTotal =
     breakdownItems.length > 0
-      ? breakdownItems.reduce((sum, link) => sum + Number(link.feeItem.defaultAmount), 0)
+      ? breakdownItems.reduce((sum, link) => sum + Number(link.amount), 0)
       : Number(dueInvoice?.amount ?? 0)
   const allocated = dueInvoice?.allocations.reduce((sum, a) => sum + Number(a.amount), 0) ?? 0
   const amountDue = dueInvoice ? itemsTotal - Number(dueInvoice.discountAmount) - allocated : null
@@ -68,7 +69,7 @@ export function RegistrationPaymentCollector({
     setError(null)
     const lines: ReceiptLine[] =
       breakdownItems.length > 0
-        ? breakdownItems.map((link) => ({ label: link.feeItem.name, amount: Number(link.feeItem.defaultAmount) }))
+        ? breakdownItems.map((link) => ({ label: link.feeItem.name, amount: Number(link.amount) }))
         : [{ label: dueInvoice?.feeType.name ?? "Registration fee", amount: amountDue ?? 0 }]
     try {
       const result = await confirmPayment.mutateAsync({
@@ -95,7 +96,7 @@ export function RegistrationPaymentCollector({
               breakdownItems.map((link) => (
                 <li key={link.feeItemId} className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{link.feeItem.name}</span>
-                  <span>{formatCurrency(Number(link.feeItem.defaultAmount))}</span>
+                  <span>{formatCurrency(Number(link.amount))}</span>
                 </li>
               ))
             ) : (
@@ -176,6 +177,7 @@ function PaymentReceipt({
   payment: RegistrationPayment
   lines: ReceiptLine[]
 }) {
+  const { name: academyName } = useAcademyBranding()
   const total = lines.reduce((sum, line) => sum + line.amount, 0)
 
   return (
@@ -190,7 +192,7 @@ function PaymentReceipt({
       <div className="flex items-center gap-3 border-b border-border pb-4">
         <AcademyLogo className="size-10" />
         <div>
-          <p className="text-sm font-semibold">Kapikids Soccer Academy</p>
+          <p className="text-sm font-semibold">{academyName}</p>
           <p className="text-xs text-muted-foreground">Payment Receipt</p>
         </div>
       </div>

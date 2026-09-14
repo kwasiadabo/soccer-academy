@@ -17,6 +17,11 @@ import { useAgeCategories } from "@/features/dashboard-admin/academy-config-api"
 import { useCreatePlayer, usePlayer, type Player } from "./players-api"
 import { PlayerPhotoCapture } from "./player-photo-capture"
 import { RegistrationPaymentCollector } from "./registration-payment-collector"
+import {
+  RegistrationFeeItemsSelector,
+  RegistrationFeeLoadState,
+  useRegistrationFeeType,
+} from "./registration-fee-selector"
 
 const guardianSchema = z.object({
   firstName: z.string().min(1, "Required"),
@@ -51,11 +56,13 @@ const STEPS = [
   { label: "Player details", description: "Core profile information" },
   { label: "Guardians", description: "Parent / guardian contacts" },
   { label: "Review", description: "Confirm before submitting" },
+  { label: "Registration fee", description: "Pick which items apply" },
   { label: "Payment", description: "Collect the registration fee" },
 ] as const
 
 const REVIEW_STEP = 2
-const PAYMENT_STEP = 3
+const FEES_STEP = 3
+const PAYMENT_STEP = 4
 
 const STEP_DETAILS_FIELDS = ["firstName", "lastName", "dateOfBirth", "gender", "ageCategoryId"] as const
 const STEP_GUARDIAN_FIELDS = ["guardians", "primaryGuardianIndex"] as const
@@ -116,6 +123,14 @@ export function PlayerRegistrationForm() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
   const [createdPlayer, setCreatedPlayer] = useState<Player | null>(null)
   const { data: livePlayer } = usePlayer(createdPlayer?.id)
+  const { registrationFeeType, isLoading: feesLoading, isError: feesError, refetch: refetchFees } =
+    useRegistrationFeeType()
+  const [selectedFeeItemIds, setSelectedFeeItemIds] = useState<string[]>([])
+  const [feesSubmitting, setFeesSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (registrationFeeType) setSelectedFeeItemIds(registrationFeeType.items.map((link) => link.feeItemId))
+  }, [registrationFeeType])
 
   useEffect(() => {
     if (!photoFile) {
@@ -193,14 +208,31 @@ export function PlayerRegistrationForm() {
         }
       }
 
-      // Moves the player straight from bio-data capture to payment collection (generates
-      // the registration invoice) — see PlayersService#approve. Nothing else can be done
-      // for this player until the Payment step below is completed.
-      const approvedPlayer = await api.post<Player>(`/players/${player.id}/approve`)
+      setCreatedPlayer(player)
+      setStep(FEES_STEP)
+    } catch (err) {
+      setServerError(err instanceof ApiError ? err.message : "Could not create the registration.")
+    }
+  }
+
+  // Moves the player from bio-data capture to payment collection (generates the
+  // registration invoice, charging only the items picked on the Fees step) — see
+  // PlayersService#approve. Nothing else can be done for this player until the
+  // Payment step below is completed.
+  const onConfirmFees = async () => {
+    if (!createdPlayer) return
+    setServerError(null)
+    setFeesSubmitting(true)
+    try {
+      const approvedPlayer = await api.post<Player>(`/players/${createdPlayer.id}/approve`, {
+        feeItemIds: selectedFeeItemIds,
+      })
       setCreatedPlayer(approvedPlayer)
       setStep(PAYMENT_STEP)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not create the registration.")
+      setServerError(err instanceof ApiError ? err.message : "Could not generate the registration invoice.")
+    } finally {
+      setFeesSubmitting(false)
     }
   }
 
@@ -455,6 +487,33 @@ export function PlayerRegistrationForm() {
         </div>
       ) : null}
 
+      {step === FEES_STEP && createdPlayer ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Registration fee</CardTitle>
+            <CardDescription>
+              Pick which items apply to {createdPlayer.firstName}'s registration — a returning player might not
+              need everything.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RegistrationFeeLoadState
+              isLoading={feesLoading}
+              isError={feesError}
+              onRetry={() => void refetchFees()}
+              hasFeeType={!!registrationFeeType}
+            />
+            {registrationFeeType ? (
+              <RegistrationFeeItemsSelector
+                feeType={registrationFeeType}
+                selectedIds={selectedFeeItemIds}
+                onChange={setSelectedFeeItemIds}
+              />
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {step === PAYMENT_STEP && createdPlayer ? (
         <Card>
           <CardHeader>
@@ -496,7 +555,17 @@ export function PlayerRegistrationForm() {
 
       {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
-      {step < PAYMENT_STEP ? (
+      {step === FEES_STEP ? (
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            onClick={() => void onConfirmFees()}
+            disabled={feesSubmitting || !registrationFeeType}
+          >
+            {feesSubmitting ? "Generating invoice…" : "Confirm & continue to payment"}
+          </Button>
+        </div>
+      ) : step < PAYMENT_STEP ? (
         <div className="flex justify-between gap-3">
           <Button
             type="button"

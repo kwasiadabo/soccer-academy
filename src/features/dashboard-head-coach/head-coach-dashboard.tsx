@@ -1,10 +1,13 @@
 import { formatDate } from "@/lib/date"
 import { useNavigate } from "react-router-dom"
 import {
+  CalendarCheck2,
+  CalendarRange,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  FileBarChart,
   IdCard,
   Images,
   LayoutDashboard,
@@ -37,11 +40,14 @@ export const HEAD_COACH_NAV_ITEMS: NavItem[] = [
   { to: "/head-coach/players", label: "Players", icon: IdCard },
   { to: "/receptionist/finance", label: "Payments & Debtors", icon: CreditCard },
   { to: "/head-coach/teams", label: "Teams", icon: Shield },
+  { to: "/head-coach/training-sessions", label: "Attendance", icon: CalendarCheck2 },
+  { to: "/head-coach/session-management", label: "Manage Sessions", icon: CalendarRange },
   { to: "/head-coach/coaches", label: "Coaches", icon: Users },
   { to: "/head-coach/matches", label: "Matches", icon: Trophy },
   { to: "/head-coach/assessments", label: "Player Ratings", icon: ClipboardList },
   { to: "/issues", label: "Issues", icon: LifeBuoy },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag },
+  { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart },
   { to: "/merchandise/products", label: "Products", icon: Package },
   { to: "/gallery/manage", label: "Gallery", icon: Images },
 ]

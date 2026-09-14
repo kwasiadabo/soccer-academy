@@ -18,6 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { useAcademyBranding } from "@/app/academy-branding-context"
 import { ApiError } from "@/lib/api-client"
 import { useSubmitInquiry } from "./inquiries-api"
 
@@ -34,6 +35,7 @@ const inquirySchema = z.object({
 type InquiryFormValues = z.infer<typeof inquirySchema>
 
 export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
+  const { name: academyName } = useAcademyBranding()
   const [open, setOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -88,7 +90,7 @@ export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Join Kapikids Soccer Academy</DialogTitle>
+              <DialogTitle>Join {academyName}</DialogTitle>
               <DialogDescription>Tell us about your child and we'll be in touch to get started.</DialogDescription>
             </DialogHeader>
             <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>

@@ -202,7 +202,9 @@ export function useSubmitPlayer(id: string) {
 export function useApprovePlayer(id: string) {
   const invalidate = useInvalidatePlayer(id)
   return useMutation({
-    mutationFn: () => api.post<Player>(`/players/${id}/approve`),
+    // Omit feeItemIds entirely to charge the registration fee's full amount,
+    // unchanged from before this selection existed.
+    mutationFn: (feeItemIds?: string[]) => api.post<Player>(`/players/${id}/approve`, { feeItemIds }),
     onSuccess: invalidate,
   })
 }

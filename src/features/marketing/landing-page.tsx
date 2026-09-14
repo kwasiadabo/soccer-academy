@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useAcademyBranding } from '@/app/academy-branding-context';
 import { AcademyLogo } from '@/design-system/academy-logo';
 import { JoinUsDialog } from './join-us-dialog';
 import { usePlayerOfTheWeekFeed } from './player-of-the-week-api';
@@ -161,7 +162,6 @@ const testimonials = [
 	},
 ];
 
-
 function PlayerOfTheWeekMarquee() {
 	const { data } = usePlayerOfTheWeekFeed();
 	const reduceMotion = useReducedMotion();
@@ -176,7 +176,10 @@ function PlayerOfTheWeekMarquee() {
 	// more so the first half exactly matches the second — a seamless loop at any length.
 	const CARD_SPAN_PX = 244; // w-56 card (224px) + gap-5 (20px)
 	const MIN_UNIT_PX = 3200;
-	const repeats = Math.max(1, Math.ceil(MIN_UNIT_PX / (players.length * CARD_SPAN_PX)));
+	const repeats = Math.max(
+		1,
+		Math.ceil(MIN_UNIT_PX / (players.length * CARD_SPAN_PX)),
+	);
 	const unit = Array.from({ length: repeats }, () => players).flat();
 	const track = [...unit, ...unit];
 
@@ -203,7 +206,11 @@ function PlayerOfTheWeekMarquee() {
 					transition={
 						reduceMotion
 							? undefined
-							: { duration: unit.length * MARQUEE_DURATION_PER_CARD, repeat: Infinity, ease: 'linear' }
+							: {
+									duration: unit.length * MARQUEE_DURATION_PER_CARD,
+									repeat: Infinity,
+									ease: 'linear',
+								}
 					}
 				>
 					{track.map((player, i) => (
@@ -237,7 +244,9 @@ function PlayerOfTheWeekMarquee() {
 
 function GallerySection() {
 	const { data } = useGalleryFeed();
-	const training = (data ?? []).filter((p) => p.context === 'SATURDAY_TRAINING');
+	const training = (data ?? []).filter(
+		(p) => p.context === 'SATURDAY_TRAINING',
+	);
 	const matchDay = (data ?? []).filter((p) => p.context === 'MATCH');
 
 	if (training.length === 0 && matchDay.length === 0) return null;
@@ -266,7 +275,11 @@ function GallerySection() {
 										key={photo.id}
 										className="aspect-square overflow-hidden rounded-xl border border-border bg-card"
 									>
-										<img src={photo.url} alt="" className="size-full object-cover" />
+										<img
+											src={photo.url}
+											alt=""
+											className="size-full object-cover"
+										/>
 									</div>
 								))}
 							</div>
@@ -287,7 +300,11 @@ function GallerySection() {
 										key={photo.id}
 										className="aspect-square overflow-hidden rounded-xl border border-border bg-card"
 									>
-										<img src={photo.url} alt="" className="size-full object-cover" />
+										<img
+											src={photo.url}
+											alt=""
+											className="size-full object-cover"
+										/>
 									</div>
 								))}
 							</div>
@@ -300,6 +317,7 @@ function GallerySection() {
 }
 
 export function LandingPage() {
+	const { name: academyName, contactEmail, contactPhone, trainingLocation } = useAcademyBranding();
 	const { data: galleryPhotos } = useGalleryFeed();
 	const heroImages =
 		galleryPhotos && galleryPhotos.length > 0
@@ -319,7 +337,7 @@ export function LandingPage() {
 					<div className="flex items-center gap-2">
 						<AcademyLogo className="size-10" />
 						<span className="text-sm font-semibold text-foreground">
-							Kapikids Soccer Academy
+							{academyName}
 						</span>
 					</div>
 
@@ -575,23 +593,27 @@ export function LandingPage() {
 					</p>
 
 					<div className="mt-7 flex flex-wrap justify-center gap-3">
-						<Button asChild size="lg">
-							<a href="mailto:info@Kapikidsacademy.com">
-								<Mail className="size-4" aria-hidden />
-								Email us - info@Kapikidsacademy.com
-							</a>
-						</Button>
-						<Button
-							asChild
-							size="lg"
-							variant="outline"
-							className="border-white/20 bg-transparent text-sidebar-foreground hover:bg-white/10"
-						>
-							<a href="tel:+233244360963">
-								<Phone className="size-4" aria-hidden />
-								Call us - 0244360963
-							</a>
-						</Button>
+						{contactEmail ? (
+							<Button asChild size="lg">
+								<a href={`mailto:${contactEmail}`}>
+									<Mail className="size-4" aria-hidden />
+									Email us - {contactEmail}
+								</a>
+							</Button>
+						) : null}
+						{contactPhone ? (
+							<Button
+								asChild
+								size="lg"
+								variant="outline"
+								className="border-white/20 bg-transparent text-sidebar-foreground hover:bg-white/10"
+							>
+								<a href={`tel:${contactPhone.replace(/\s+/g, '')}`}>
+									<Phone className="size-4" aria-hidden />
+									Call us - {contactPhone}
+								</a>
+							</Button>
+						) : null}
 						<Button
 							asChild
 							size="lg"
@@ -610,18 +632,20 @@ export function LandingPage() {
 					</div>
 
 					<div className="relative mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-sidebar-foreground/70">
-						<a
-							href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-								'Makers House Astroturf',
-							)}`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-75"
-							aria-label="Get directions to Makers House Astroturf"
-						>
-							<MapPin className="size-4 shrink-0 text-primary" aria-hidden />
-							<span>Makers House Astroturf</span>
-						</a>
+						{trainingLocation ? (
+							<a
+								href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+									trainingLocation,
+								)}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center gap-1.5 cursor-pointer transition-opacity hover:opacity-75"
+								aria-label={`Get directions to ${trainingLocation}`}
+							>
+								<MapPin className="size-4 shrink-0 text-primary" aria-hidden />
+								<span>{trainingLocation}</span>
+							</a>
+						) : null}
 						<span className="flex items-center gap-1.5">
 							<CalendarClock
 								className="size-4 shrink-0 text-primary"
@@ -638,12 +662,11 @@ export function LandingPage() {
 					<div className="flex items-center gap-2">
 						<AcademyLogo className="size-8" />
 						<span className="text-sm font-semibold text-foreground">
-							Kapikids Soccer Academy
+							{academyName}
 						</span>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						© {new Date().getFullYear()} Kapikids Soccer Academy. All rights
-						reserved.
+						© {new Date().getFullYear()} {academyName}. All rights reserved.
 					</p>
 				</div>
 			</footer>

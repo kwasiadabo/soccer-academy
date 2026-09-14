@@ -25,9 +25,10 @@ export const RECEPTIONIST_NAV_ITEMS: NavItem[] = [
   { to: "/receptionist/finance/monthly-billing", label: "Monthly Billing", icon: CalendarDays },
   { to: "/receptionist/finance/report", label: "Payments Report", icon: FileBarChart },
   { to: "/receptionist/finance/aging", label: "Owing Report", icon: AlertOctagon },
-  { to: "/receptionist/finance/fee-types", label: "Fee Types", icon: Tag },
+  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag },
   { to: "/issues", label: "Issues", icon: LifeBuoy },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag },
+  { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart },
   { to: "/merchandise/products", label: "Products", icon: Package },
   { to: "/gallery/manage", label: "Gallery", icon: Images },
 ]

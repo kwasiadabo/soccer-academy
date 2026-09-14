@@ -249,7 +249,7 @@ function SessionAssessmentForm({
 
       {sessionActivities.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No activities have been added to this session yet — add one from the session's roster page before
+          No activities have been added to this session yet — go back and add one from the Assessments page before
           assessing players.
         </p>
       ) : (

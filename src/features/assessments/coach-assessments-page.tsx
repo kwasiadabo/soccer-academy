@@ -1,23 +1,126 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, ArrowRight, Check, MessageSquarePlus, Search, Star } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { ArrowLeft, ArrowRight, Check, Dumbbell, MessageSquarePlus, Plus, Search, Star, X } from "lucide-react"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog } from "@/components/ui/dialog"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { EmptyState } from "@/design-system/empty-state"
 import { LoadingState } from "@/design-system/loading-state"
 import { ErrorState } from "@/design-system/error-state"
+import { ApiError } from "@/lib/api-client"
 import { formatDate, isPastDate } from "@/lib/date"
 import { PlayerPhoto } from "@/features/players/player-photo"
 import { RemarkDialog, type AssessablePlayer } from "./player-assessment-dialogs"
 import { usePlayerAssessments } from "./assessments-api"
-import { useTrainingSession, useTrainingSessions, type SessionWithRoster } from "@/features/training/training-api"
+import {
+  useAddSessionActivity,
+  useRemoveSessionActivity,
+  useTrainingSession,
+  useTrainingSessions,
+  type SessionWithRoster,
+} from "@/features/training/training-api"
 import { COACH_NAV_ITEMS } from "@/features/dashboard-coach/coach-dashboard"
+
+const sessionActivitySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+})
+type SessionActivityFormValues = z.infer<typeof sessionActivitySchema>
+
+// Session activities live here (rather than on the Attendance page) because they're
+// specifically what players get rated against when assessed — this is the screen coaches
+// are already on right before picking a player to assess.
+function SessionActivitiesCard({ session }: { session: SessionWithRoster }) {
+  const addActivity = useAddSessionActivity(session.id)
+  const removeActivity = useRemoveSessionActivity(session.id)
+  const [error, setError] = useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<SessionActivityFormValues>({ resolver: zodResolver(sessionActivitySchema) })
+
+  const onAdd = async (values: SessionActivityFormValues) => {
+    setError(null)
+    try {
+      await addActivity.mutateAsync(values)
+      reset()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not add activity.")
+    }
+  }
+
+  const onRemove = async (activityId: string) => {
+    setError(null)
+    try {
+      await removeActivity.mutateAsync(activityId)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove activity.")
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center gap-3 space-y-0">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-chart-3/10 text-chart-3">
+          <Dumbbell className="size-4.5" />
+        </div>
+        <div>
+          <CardTitle className="text-base">Session Activities</CardTitle>
+          <CardDescription>
+            Set the activities for this session — players are rated against these when assessed.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {session.sessionActivities.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No activities added yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {session.sessionActivities.map((activity) => (
+              <span
+                key={activity.id}
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 py-1 pr-1.5 pl-3 text-sm"
+              >
+                {activity.name}
+                <button
+                  type="button"
+                  aria-label={`Remove ${activity.name}`}
+                  onClick={() => void onRemove(activity.id)}
+                  className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <form className="flex items-end gap-2 pt-1" onSubmit={handleSubmit(onAdd)} noValidate>
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="session-activity-name">Activity name</Label>
+            <Input id="session-activity-name" placeholder="Passing" {...register("name")} />
+            {errors.name ? <p className="text-xs text-destructive">{errors.name.message}</p> : null}
+          </div>
+          <Button type="submit" variant="outline" disabled={isSubmitting}>
+            <Plus /> Add
+          </Button>
+        </form>
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      </CardContent>
+    </Card>
+  )
+}
 
 function PresentPlayerRow({
   attendance,
@@ -144,6 +247,7 @@ export function CoachAssessmentsPage() {
           <Button variant="ghost" size="sm" className="mb-4" onClick={() => setSelectedSessionId(undefined)}>
             <ArrowLeft /> Change session
           </Button>
+          {selectedSession ? <div className="mb-4"><SessionActivitiesCard session={selectedSession} /></div> : null}
           <Card>
             <CardHeader>
               <CardTitle>
