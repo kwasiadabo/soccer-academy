@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useSearchParams } from "react-router-dom"
-import { AlertTriangle, Boxes, CreditCard, ExternalLink, Pencil, Plus, Save, Search, X } from "lucide-react"
+import { AlertTriangle, Boxes, CreditCard, ExternalLink, Pencil, Plus, Search, X } from "lucide-react"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
@@ -58,7 +58,6 @@ const feeTypeSchema = z.object({
   description: z.string().optional(),
   isRecurring: z.boolean(),
 })
-type FeeTypeFormValues = z.infer<typeof feeTypeSchema>
 
 // Creating a fee picks from the fee items you've already captured on the Fee
 // Items page, rather than typing a new name — the fee is named after

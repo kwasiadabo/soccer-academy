@@ -86,7 +86,8 @@ const scheduleSchema = z.object({
   endTime: z.string().min(1, "End time is required"),
   location: z.string().optional(),
 })
-type ScheduleFormValues = z.infer<typeof scheduleSchema>
+type ScheduleFormValues = z.input<typeof scheduleSchema>
+type ScheduleFormOutput = z.output<typeof scheduleSchema>
 
 // Head Coach-only: lets them change the academy's recurring weekly training fixture
 // (e.g. move it from Saturday to Sunday, or change its time/venue) instead of it being
@@ -102,7 +103,7 @@ function WeeklyScheduleCard() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<ScheduleFormValues>({ resolver: zodResolver(scheduleSchema) })
+  } = useForm<ScheduleFormValues, unknown, ScheduleFormOutput>({ resolver: zodResolver(scheduleSchema) })
 
   useEffect(() => {
     if (editOpen && schedule) {
@@ -115,7 +116,7 @@ function WeeklyScheduleCard() {
     }
   }, [editOpen, schedule, reset])
 
-  const onSubmit = async (values: ScheduleFormValues) => {
+  const onSubmit = async (values: ScheduleFormOutput) => {
     setServerError(null)
     try {
       await updateSchedule.mutateAsync({
