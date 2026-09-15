@@ -1,0 +1,50 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Where the backend actually lives — set via the API_UPSTREAM env var at
+    # container start (see Dockerfile for the default, meant for a compose-internal
+    # "api" service). Deployments where the API is its own public service — e.g.
+    # https://api.sams.variablexsolutions.com — override it instead.
+    #
+    # Resolved per-request via `resolver` + a variable, rather than baked into
+    # `proxy_pass` at nginx startup: a literal hostname there is resolved once
+    # when nginx boots, and if it doesn't resolve at that moment (DNS hiccup,
+    # backend not up yet) nginx refuses to start at all — taking down the static
+    # site too, not just the API calls. This way a bad/slow backend only 502s
+    # the /api/ requests that actually hit it.
+    resolver 127.0.0.11 valid=30s;
+    set $api_upstream "${API_UPSTREAM}";
+
+    # No URI after the upstream in proxy_pass: nginx forwards the request URI
+    # unchanged, so /api/... reaches the api's own /api/... routes (see
+    # setGlobalPrefix in main.ts). $proxy_host carries the upstream's own
+    # host[:port] (compose service name, or the public api subdomain) so this
+    # works correctly either way without hardcoding it here.
+    location /api/ {
+        proxy_pass $api_upstream;
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Client-side routing (React Router) — any unmatched path falls back to index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Fingerprinted build assets are safe to cache long-term; index.html must
+    # always be revalidated so deploys are picked up immediately.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+}
