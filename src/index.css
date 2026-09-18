@@ -55,6 +55,12 @@
 }
 
 :root {
+	/* Without this, browsers pick form-control/autofill chrome (input text,
+       autofill background, scrollbars) based on the OS theme rather than
+       ours — on a dark surface like the platform login card that can render
+       typed input text in a native dark-on-dark combination that's
+       unreadable, even though every other color here is explicit. */
+	color-scheme: light;
 	/* Light content surfaces: white cards/tables/forms per the finance-must-stay-trustworthy requirement. */
 	--background: oklch(0.995 0.002 95);
 	--foreground: oklch(0.17 0.015 60);
@@ -105,6 +111,7 @@
 }
 
 .dark {
+	color-scheme: dark;
 	--background: oklch(0.16 0.008 60);
 	--foreground: oklch(0.94 0.006 90);
 	--card: oklch(0.21 0.01 60);
