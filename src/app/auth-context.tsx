@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import type { AuthResponse, AuthUser } from "@/lib/shared-types"
-import { api, setAccessToken, setSessionExpiredHandler } from "@/lib/api-client"
+import { api, setAccessToken, setSessionExpiredHandler, tryRefresh } from "@/lib/api-client"
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -51,10 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     ;(async () => {
       try {
-        const res = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" })
-        if (res.ok) {
-          const data = (await res.json()) as { accessToken: string }
-          setAccessToken(data.accessToken)
+        const refreshed = await tryRefresh()
+        if (refreshed) {
           const me = await api.get<AuthUser>("/auth/me").catch(() => null)
           setUser(me)
         }

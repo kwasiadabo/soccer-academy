@@ -52,7 +52,7 @@ async function rawRequest(path: string, options: RequestOptions = {}): Promise<R
 // callers from ever racing each other.
 let refreshInFlight: Promise<boolean> | null = null;
 
-async function tryRefresh(): Promise<boolean> {
+export async function tryRefresh(): Promise<boolean> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {

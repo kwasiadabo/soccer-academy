@@ -44,6 +44,7 @@ import { PlayerStatementPage } from "@/features/finance/player-statement-page"
 import { BirthdaysPage } from "@/features/players/birthdays-page"
 import { HeadCoachDashboard } from "@/features/dashboard-head-coach/head-coach-dashboard"
 import { HeadCoachTeamsPage } from "@/features/dashboard-head-coach/head-coach-teams-page"
+import { HeadCoachAgeCategoriesPage } from "@/features/dashboard-head-coach/head-coach-age-categories-page"
 import { HeadCoachPlayersPage } from "@/features/dashboard-head-coach/head-coach-players-page"
 import { TrainingApprovalQueuePage } from "@/features/training/training-approval-queue-page"
 import { CoachDashboard } from "@/features/dashboard-coach/coach-dashboard"
@@ -139,6 +140,7 @@ export default function App() {
         <Route path="/head-coach/approvals" element={<TrainingApprovalQueuePage />} />
         <Route path="/head-coach/templates" element={<HeadCoachAssessmentTemplatesPage />} />
         <Route path="/head-coach/teams" element={<HeadCoachTeamsPage />} />
+        <Route path="/head-coach/age-categories" element={<HeadCoachAgeCategoriesPage />} />
         <Route path="/head-coach/players" element={<HeadCoachPlayersPage />} />
         <Route path="/head-coach/coaches" element={<HeadCoachCoachesPage />} />
         <Route path="/head-coach/coaches/:coachId" element={<HeadCoachCoachProfilePage />} />

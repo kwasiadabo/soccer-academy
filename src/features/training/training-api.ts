@@ -254,16 +254,26 @@ export function useCreateTrainingSession() {
 
 export const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-// The academy's recurring weekly training fixture (day of week + time + location) that
-// sessions are auto-provisioned from — see TrainingService#getSchedule on the API side.
-export interface TrainingSchedule {
+// The academy's recurring weekly training fixture — a list of slots (day of week + time +
+// location) that sessions are auto-provisioned from, one per team per slot per week. An
+// academy can train more than once a week, e.g. Tuesday evenings AND Saturday mornings —
+// see TrainingService#listSchedule on the API side.
+export interface TrainingScheduleSlot {
+  id: string
   dayOfWeek: number
   startTime: string
   endTime: string
   location: string | null
 }
 
-export interface UpdateTrainingScheduleInput {
+export interface CreateTrainingScheduleSlotInput {
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  location?: string
+}
+
+export interface UpdateTrainingScheduleSlotInput {
   dayOfWeek?: number
   startTime?: string
   endTime?: string
@@ -275,14 +285,38 @@ const SCHEDULE_QUERY_KEY = ["training", "schedule"] as const
 export function useTrainingSchedule() {
   return useQuery({
     queryKey: SCHEDULE_QUERY_KEY,
-    queryFn: () => api.get<TrainingSchedule>("/training/schedule"),
+    queryFn: () => api.get<TrainingScheduleSlot[]>("/training/schedule"),
   })
 }
 
-export function useUpdateTrainingSchedule() {
+export function useAddTrainingScheduleSlot() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: UpdateTrainingScheduleInput) => api.patch<TrainingSchedule>("/training/schedule", input),
+    mutationFn: (input: CreateTrainingScheduleSlotInput) =>
+      api.post<TrainingScheduleSlot>("/training/schedule", input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEYS.list })
+    },
+  })
+}
+
+export function useUpdateTrainingScheduleSlot() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: UpdateTrainingScheduleSlotInput & { id: string }) =>
+      api.patch<TrainingScheduleSlot>(`/training/schedule/${id}`, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEYS.list })
+    },
+  })
+}
+
+export function useRemoveTrainingScheduleSlot() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/training/schedule/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SCHEDULE_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEYS.list })

@@ -1,25 +1,14 @@
 import { formatDate, formatTime, isSameDay } from "@/lib/date"
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
 import { useNavigate } from "react-router-dom"
-import { CalendarClock, Check, ClipboardCheck, Pencil, Search, UserSearch, type LucideIcon } from "lucide-react"
+import { Check, ClipboardCheck, Search, UserSearch, type LucideIcon } from "lucide-react"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table"
 import { EmptyState } from "@/design-system/empty-state"
 import { LoadingState } from "@/design-system/loading-state"
@@ -32,14 +21,12 @@ import { usePlayers, type Player } from "@/features/players/players-api"
 import { PlayerPhoto } from "@/features/players/player-photo"
 import {
   useQuickMarkAttendance,
-  useTrainingSchedule,
   useTrainingSessions,
   useTrainingTeams,
-  useUpdateTrainingSchedule,
-  WEEKDAY_NAMES,
   type AttendanceStatus,
   type TrainingSession,
 } from "./training-api"
+import { TrainingScheduleSection } from "@/features/academy-settings/training-schedule-section"
 import { COACH_NAV_ITEMS } from "@/features/dashboard-coach/coach-dashboard"
 import { RECEPTIONIST_NAV_ITEMS } from "@/features/dashboard-receptionist/receptionist-dashboard"
 import { HEAD_COACH_NAV_ITEMS } from "@/features/dashboard-head-coach/head-coach-dashboard"
@@ -78,133 +65,6 @@ function buildMarkedPlayerRows(sessions: TrainingSession[]): MarkedPlayerRow[] {
       })),
     )
     .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
-}
-
-const scheduleSchema = z.object({
-  dayOfWeek: z.coerce.number().min(0).max(6),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  location: z.string().optional(),
-})
-type ScheduleFormValues = z.input<typeof scheduleSchema>
-type ScheduleFormOutput = z.output<typeof scheduleSchema>
-
-// Head Coach-only: lets them change the academy's recurring weekly training fixture
-// (e.g. move it from Saturday to Sunday, or change its time/venue) instead of it being
-// fixed forever at whatever an admin set up initially.
-function WeeklyScheduleCard() {
-  const { data: schedule, isLoading } = useTrainingSchedule()
-  const updateSchedule = useUpdateTrainingSchedule()
-  const [editOpen, setEditOpen] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ScheduleFormValues, unknown, ScheduleFormOutput>({ resolver: zodResolver(scheduleSchema) })
-
-  useEffect(() => {
-    if (editOpen && schedule) {
-      reset({
-        dayOfWeek: schedule.dayOfWeek,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        location: schedule.location ?? "",
-      })
-    }
-  }, [editOpen, schedule, reset])
-
-  const onSubmit = async (values: ScheduleFormOutput) => {
-    setServerError(null)
-    try {
-      await updateSchedule.mutateAsync({
-        dayOfWeek: values.dayOfWeek,
-        startTime: values.startTime,
-        endTime: values.endTime,
-        location: values.location || undefined,
-      })
-      setEditOpen(false)
-    } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not update the schedule.")
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <CardIcon icon={CalendarClock} />
-          <div>
-            <CardTitle>Weekly Training Schedule</CardTitle>
-            <CardDescription>
-              {isLoading || !schedule ? (
-                "Loading…"
-              ) : (
-                <>
-                  Every <span className="font-medium text-foreground">{WEEKDAY_NAMES[schedule.dayOfWeek]}</span>,{" "}
-                  {schedule.startTime}–{schedule.endTime}
-                  {schedule.location ? ` at ${schedule.location}` : ""} — sessions auto-schedule for every team.
-                </>
-              )}
-            </CardDescription>
-          </div>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} disabled={!schedule}>
-          <Pencil /> Edit
-        </Button>
-      </CardHeader>
-
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <div className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CalendarClock className="size-4.5" />
-            </div>
-            <DialogTitle>Edit weekly training schedule</DialogTitle>
-            <DialogDescription>
-              This changes the recurring fixture for every team academy-wide, e.g. "every Saturday."
-            </DialogDescription>
-          </DialogHeader>
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div className="space-y-1.5">
-              <Label htmlFor="schedule-day">Day of week</Label>
-              <Select id="schedule-day" {...register("dayOfWeek")}>
-                {WEEKDAY_NAMES.map((name, value) => (
-                  <option key={value} value={value}>
-                    {name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="schedule-start">Start time</Label>
-                <Input id="schedule-start" type="time" {...register("startTime")} />
-                {errors.startTime ? <p className="text-xs text-destructive">{errors.startTime.message}</p> : null}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="schedule-end">End time</Label>
-                <Input id="schedule-end" type="time" {...register("endTime")} />
-                {errors.endTime ? <p className="text-xs text-destructive">{errors.endTime.message}</p> : null}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="schedule-location">Location</Label>
-              <Input id="schedule-location" {...register("location")} />
-            </div>
-            {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
-            <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving…" : "Save schedule"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </Card>
-  )
 }
 
 function CardIcon({ icon: Icon }: { icon: LucideIcon }) {
@@ -393,7 +253,7 @@ export function TrainingSessionListPage() {
       navItems={isReceptionist ? RECEPTIONIST_NAV_ITEMS : isHeadCoach ? HEAD_COACH_NAV_ITEMS : COACH_NAV_ITEMS}
     >
       <div className="space-y-4">
-        {isHeadCoach ? <WeeklyScheduleCard /> : null}
+        {isHeadCoach ? <TrainingScheduleSection /> : null}
 
         <Card>
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">

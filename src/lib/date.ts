@@ -38,9 +38,10 @@ export function isSameDay(a: string | Date, b: string | Date): boolean {
   )
 }
 
-// Training is a recurring weekly fixture on a configurable day (see TrainingService#getSchedule
-// on the API — defaults to Saturday) — the "current" training day is the most recent occurrence
-// of that day on or before today, not necessarily the literal calendar date. A session dated for
+// Training is a recurring weekly fixture, possibly on more than one configurable day (see
+// TrainingService#listSchedule on the API — an academy can train more than once a week) —
+// the "current" training day for a given fixture day is the most recent occurrence of that
+// day on or before today, not necessarily the literal calendar date. A session dated for
 // that day should still read as "this week's session" for the full week that follows it.
 function resolveCurrentTrainingDate(fixtureDayOfWeek: number): Date {
   const now = new Date()
@@ -54,14 +55,19 @@ function resolveCurrentTrainingDate(fixtureDayOfWeek: number): Date {
 // slot, etc). Those won't ever match resolveCurrentTrainingDate, so this widens the window to
 // the full training week (the fixture day through the following 6 days) for "what's on this
 // week" views, and for deciding whether a just-passed fixture session is still open for
-// attendance to be marked/corrected rather than being locked as historical.
-export function isWithinCurrentTrainingWeek(dateStr: string | Date, fixtureDayOfWeek: number): boolean {
+// attendance to be marked/corrected rather than being locked as historical. Accepts one or
+// several fixture days (an academy can now have more than one weekly slot) — true if the
+// date falls in ANY of their current training weeks.
+export function isWithinCurrentTrainingWeek(dateStr: string | Date, fixtureDaysOfWeek: number | number[]): boolean {
   const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr
-  const start = resolveCurrentTrainingDate(fixtureDayOfWeek)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 7)
-  return date >= start && date < end
+  const days = Array.isArray(fixtureDaysOfWeek) ? fixtureDaysOfWeek : [fixtureDaysOfWeek]
+  return days.some((fixtureDayOfWeek) => {
+    const start = resolveCurrentTrainingDate(fixtureDayOfWeek)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 7)
+    return date >= start && date < end
+  })
 }
 
 export function isPastDate(dateStr: string | Date): boolean {

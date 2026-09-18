@@ -50,7 +50,7 @@ export function CoachDashboard() {
   const matches = useMatches()
   const players = usePlayers()
   const { data: schedule } = useTrainingSchedule()
-  const fixtureDayOfWeek = schedule?.dayOfWeek ?? 6
+  const fixtureDayOfWeek = schedule && schedule.length > 0 ? schedule.map((s) => s.dayOfWeek) : [6]
 
   const todaysSessions = (sessions.data ?? []).filter((s) => isWithinCurrentTrainingWeek(s.date, fixtureDayOfWeek))
   const upcomingSessions = (sessions.data ?? []).filter(

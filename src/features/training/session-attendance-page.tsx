@@ -332,8 +332,9 @@ export function SessionAttendancePage() {
   // A session stays open for marking/correcting attendance for the rest of its training week
   // even once its exact date has passed — e.g. the default Saturday session is still editable
   // on the following Monday — only locking as historical once a new training week begins.
+  const fixtureDaysOfWeek = schedule && schedule.length > 0 ? schedule.map((s) => s.dayOfWeek) : [6]
   const isHistorical = session
-    ? isPastDate(session.date) && !isWithinCurrentTrainingWeek(session.date, schedule?.dayOfWeek ?? 6)
+    ? isPastDate(session.date) && !isWithinCurrentTrainingWeek(session.date, fixtureDaysOfWeek)
     : false
   const [tableSearch, setTableSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
