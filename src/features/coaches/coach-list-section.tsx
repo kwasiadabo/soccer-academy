@@ -26,6 +26,7 @@ import { LoadingState } from "@/design-system/loading-state"
 import { ErrorState } from "@/design-system/error-state"
 import { StatusBadge } from "@/design-system/status-badge"
 import { ApiError } from "@/lib/api-client"
+import { ROLE_NAMES } from "@/lib/shared-types"
 import {
   useCoaches,
   useCreateCoach,
@@ -48,35 +49,42 @@ const createSchema = z.object({
 })
 type CreateFormValues = z.infer<typeof createSchema>
 
+const PORTAL_ACCESS_ROLES = [
+  ROLE_NAMES.ADMIN,
+  ROLE_NAMES.RECEPTIONIST,
+  ROLE_NAMES.HEAD_COACH,
+  ROLE_NAMES.COACH,
+]
+
 const grantSchema = z.object({
   email: z.string().email("Enter a valid email address"),
-  coach: z.boolean(),
-  headCoach: z.boolean(),
+  roles: z.array(z.string()).min(1, "Select at least one role"),
 })
 type GrantFormValues = z.infer<typeof grantSchema>
 
 function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => void }) {
   const grantAccess = useGrantCoachPortalAccess(coach.id)
+  const [roles, setRoles] = useState<string[]>([ROLE_NAMES.COACH])
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<GrantFormValues>({
     resolver: zodResolver(grantSchema),
-    defaultValues: { email: coach.email ?? "", coach: true, headCoach: false },
+    defaultValues: { email: coach.email ?? "", roles: [ROLE_NAMES.COACH] },
   })
 
+  const toggleRole = (role: string) => {
+    const next = roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role]
+    setRoles(next)
+    setValue("roles", next, { shouldValidate: true })
+  }
+
   const onSubmit = async (values: GrantFormValues) => {
-    const roleNames = [values.coach && "Coach", values.headCoach && "Head Coach"].filter(
-      (v): v is string => !!v,
-    )
-    if (roleNames.length === 0) {
-      toast.error("Select at least one role")
-      return
-    }
     try {
-      await grantAccess.mutateAsync({ email: values.email, roleNames })
+      await grantAccess.mutateAsync({ email: values.email, roleNames: values.roles })
       toast.success("Portal access granted.")
       onClose()
     } catch (err) {
@@ -100,14 +108,13 @@ function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => vo
         </div>
         <div className="space-y-2">
           <Label>Roles</Label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...register("coach")} />
-            Coach
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" {...register("headCoach")} />
-            Head Coach
-          </label>
+          {PORTAL_ACCESS_ROLES.map((role) => (
+            <label key={role} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={roles.includes(role)} onChange={() => toggleRole(role)} />
+              {role}
+            </label>
+          ))}
+          {errors.roles ? <p className="text-xs text-destructive">{errors.roles.message}</p> : null}
         </div>
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
