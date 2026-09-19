@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { ArrowLeft, ArrowRight, Check, Dumbbell, MessageSquarePlus, Plus, Search, Star, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
@@ -41,7 +42,6 @@ type SessionActivityFormValues = z.infer<typeof sessionActivitySchema>
 function SessionActivitiesCard({ session }: { session: SessionWithRoster }) {
   const addActivity = useAddSessionActivity(session.id)
   const removeActivity = useRemoveSessionActivity(session.id)
-  const [error, setError] = useState<string | null>(null)
 
   const {
     register,
@@ -51,21 +51,19 @@ function SessionActivitiesCard({ session }: { session: SessionWithRoster }) {
   } = useForm<SessionActivityFormValues>({ resolver: zodResolver(sessionActivitySchema) })
 
   const onAdd = async (values: SessionActivityFormValues) => {
-    setError(null)
     try {
       await addActivity.mutateAsync(values)
       reset()
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add activity.")
+      toast.error(err instanceof ApiError ? err.message : "Could not add activity.")
     }
   }
 
   const onRemove = async (activityId: string) => {
-    setError(null)
     try {
       await removeActivity.mutateAsync(activityId)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not remove activity.")
+      toast.error(err instanceof ApiError ? err.message : "Could not remove activity.")
     }
   }
 
@@ -116,7 +114,6 @@ function SessionActivitiesCard({ session }: { session: SessionWithRoster }) {
             <Plus /> Add
           </Button>
         </form>
-        {error ? <p className="text-xs text-destructive">{error}</p> : null}
       </CardContent>
     </Card>
   )

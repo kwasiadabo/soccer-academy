@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Send } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -32,16 +33,14 @@ export function StaffIssueDetailPage() {
   const addMessage = useAddStaffMessage(issueId ?? "")
   const updateStatus = useUpdateIssueStatus(issueId ?? "")
   const [reply, setReply] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const onReply = async () => {
     if (!reply.trim()) return
-    setServerError(null)
     try {
       await addMessage.mutateAsync(reply.trim())
       setReply("")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not send your reply.")
+      toast.error(err instanceof ApiError ? err.message : "Could not send your reply.")
     }
   }
 
@@ -72,7 +71,11 @@ export function StaffIssueDetailPage() {
                 id="issue-status"
                 value={issue.status}
                 disabled={updateStatus.isPending}
-                onChange={(e) => updateStatus.mutate(e.target.value as IssueStatus)}
+                onChange={(e) =>
+                  updateStatus.mutate(e.target.value as IssueStatus, {
+                    onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not update status."),
+                  })
+                }
                 className="w-auto"
               >
                 {STATUS_OPTIONS.map((opt) => (
@@ -113,7 +116,6 @@ export function StaffIssueDetailPage() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
               />
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => void onReply()} disabled={!reply.trim() || addMessage.isPending}>
                   <Send /> {addMessage.isPending ? "Sending…" : "Send"}

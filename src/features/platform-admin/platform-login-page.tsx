@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -6,6 +5,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom"
 import type { Location } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Mail, Lock, ShieldCheck } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,7 +26,6 @@ export function PlatformLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: Location } | null)?.from
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -39,15 +38,14 @@ export function PlatformLoginPage() {
   }
 
   const onSubmit = async (values: LoginFormValues) => {
-    setServerError(null)
     try {
       await login(values.email, values.password)
       navigate(from ? `${from.pathname}${from.search}${from.hash}` : "/platform", { replace: true })
     } catch (err) {
       if (err instanceof PlatformApiError && err.status === 429) {
-        setServerError("Too many sign-in attempts. Please wait a minute and try again.")
+        toast.error("Too many sign-in attempts. Please wait a minute and try again.")
       } else {
-        setServerError(err instanceof PlatformApiError ? err.message : "Unable to sign in. Please try again.")
+        toast.error(err instanceof PlatformApiError ? err.message : "Unable to sign in. Please try again.")
       }
     }
   }
@@ -111,12 +109,6 @@ export function PlatformLoginPage() {
             </div>
             {errors.password ? <p className="text-xs text-destructive">{errors.password.message}</p> : null}
           </div>
-
-          {serverError ? (
-            <p role="alert" aria-live="polite" className="text-sm text-destructive">
-              {serverError}
-            </p>
-          ) : null}
 
           <Button type="submit" className="w-full bg-lime-400 text-[#0B0F0A] hover:bg-lime-300" disabled={isSubmitting}>
             {isSubmitting ? "Signing in…" : "Sign in"}

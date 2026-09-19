@@ -5,6 +5,7 @@ import { z } from "zod"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,7 +31,6 @@ export function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get("token")
   const navigate = useNavigate()
-  const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
@@ -42,14 +42,11 @@ export function ResetPasswordPage() {
 
   const onSubmit = async (values: ResetPasswordValues) => {
     if (!token) return
-    setServerError(null)
     try {
       await api.post<{ success: true }>("/auth/reset-password", { token, password: values.password })
       setSubmitted(true)
     } catch (err) {
-      setServerError(
-        err instanceof ApiError ? err.message : "Unable to reset your password. Please try again.",
-      )
+      toast.error(err instanceof ApiError ? err.message : "Unable to reset your password. Please try again.")
     }
   }
 
@@ -155,12 +152,6 @@ export function ResetPasswordPage() {
                   <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
                 ) : null}
               </div>
-
-              {serverError ? (
-                <p role="alert" aria-live="polite" className="text-sm text-destructive">
-                  {serverError}
-                </p>
-              ) : null}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? "Resetting…" : "Reset password"}

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { ArrowRightLeft, Search, Users, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -33,7 +34,6 @@ function ReassignPlayerDialog({ player, onClose }: { player: Player; onClose: ()
   const updateAssignment = useUpdatePlayerTeamAssignment(player.id)
   const [teamId, setTeamId] = useState(player.team?.id ?? "")
   const [trainingGroupId, setTrainingGroupId] = useState(player.trainingGroup?.id ?? "")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const groupsForTeam = (trainingGroups ?? []).filter((g) => !teamId || g.teamId === teamId)
 
@@ -46,12 +46,12 @@ function ReassignPlayerDialog({ player, onClose }: { player: Player; onClose: ()
   }
 
   const save = async (nextTeamId: string | null, nextTrainingGroupId: string | null) => {
-    setServerError(null)
     try {
       await updateAssignment.mutateAsync({ teamId: nextTeamId, trainingGroupId: nextTrainingGroupId })
+      toast.success("Team assignment updated.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not update team assignment.")
+      toast.error(err instanceof ApiError ? err.message : "Could not update team assignment.")
     }
   }
 
@@ -89,7 +89,6 @@ function ReassignPlayerDialog({ player, onClose }: { player: Player; onClose: ()
             ))}
           </Select>
         </div>
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter className="sm:justify-between">
           <Button
             type="button"

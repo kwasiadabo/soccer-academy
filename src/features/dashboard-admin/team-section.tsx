@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus, Search, UserPlus, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,7 +37,6 @@ function AssignCoachDialog({ team }: { team: Team }) {
   const [open, setOpen] = useState(false)
   const [coachId, setCoachId] = useState("")
   const [role, setRole] = useState<"PRIMARY" | "ASSISTANT">("PRIMARY")
-  const [serverError, setServerError] = useState<string | null>(null)
   const addAssignment = useAddCoachAssignment(coachId)
 
   const activeCoaches = (coaches ?? []).filter((c) => c.isActive)
@@ -46,22 +46,21 @@ function AssignCoachDialog({ team }: { team: Team }) {
     if (!next) {
       setCoachId("")
       setRole("PRIMARY")
-      setServerError(null)
     }
   }
 
   const onSubmit = async () => {
     if (!coachId) {
-      setServerError("Select a coach")
+      toast.error("Select a coach")
       return
     }
-    setServerError(null)
     try {
       await addAssignment.mutateAsync({ teamId: team.id, role })
       await queryClient.invalidateQueries({ queryKey: QUERY_KEY_TEAMS })
+      toast.success("Coach assigned.")
       onOpenChange(false)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not assign coach.")
+      toast.error(err instanceof ApiError ? err.message : "Could not assign coach.")
     }
   }
 
@@ -96,7 +95,6 @@ function AssignCoachDialog({ team }: { team: Team }) {
               <option value="ASSISTANT">Assistant</option>
             </Select>
           </div>
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button onClick={() => void onSubmit()} disabled={addAssignment.isPending}>
               {addAssignment.isPending ? "Assigning…" : "Assign"}

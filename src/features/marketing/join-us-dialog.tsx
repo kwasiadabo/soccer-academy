@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CheckCircle2, Sparkles } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,7 +39,6 @@ export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
   const { name: academyName } = useAcademyBranding()
   const [open, setOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
   const submitInquiry = useSubmitInquiry()
 
   const {
@@ -49,7 +49,6 @@ export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
   } = useForm<InquiryFormValues>({ resolver: zodResolver(inquirySchema) })
 
   const onSubmit = async (values: InquiryFormValues) => {
-    setServerError(null)
     try {
       await submitInquiry.mutateAsync({
         ...values,
@@ -58,7 +57,7 @@ export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
       })
       setSubmitted(true)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
     }
   }
 
@@ -156,8 +155,6 @@ export function JoinUsDialog({ trigger }: { trigger: React.ReactNode }) {
                 <Label htmlFor="message">Anything else we should know? (optional)</Label>
                 <Textarea id="message" rows={3} {...register("message")} />
               </div>
-
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
               <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>

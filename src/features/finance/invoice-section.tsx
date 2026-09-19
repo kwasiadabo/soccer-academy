@@ -1,6 +1,7 @@
 import { formatDate } from "@/lib/date"
 import { useState } from "react"
 import { Receipt, BellRing } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,14 +45,12 @@ function RecordPaymentDialog({
   const [method, setMethod] = useState<PaymentMethod>("CASH")
   const [reference, setReference] = useState("")
   const [amounts, setAmounts] = useState<Record<string, string>>({})
-  const [serverError, setServerError] = useState<string | null>(null)
   const [successReceipt, setSuccessReceipt] = useState<string | null>(null)
 
   const resetForm = () => {
     setAmounts({})
     setReference("")
     setMethod("CASH")
-    setServerError(null)
     setSuccessReceipt(null)
   }
 
@@ -66,19 +65,18 @@ function RecordPaymentDialog({
   }
 
   const onSubmit = async () => {
-    setServerError(null)
     const allocations = Object.entries(amounts)
       .filter(([, amount]) => Number(amount) > 0)
       .map(([invoiceId, amount]) => ({ invoiceId, amount: Number(amount) }))
     if (allocations.length === 0) {
-      setServerError("Enter an amount for at least one invoice")
+      toast.error("Enter an amount for at least one invoice")
       return
     }
     try {
       const result = await createPayment.mutateAsync({ method, reference: reference || undefined, allocations })
       setSuccessReceipt(result.receiptNumber)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not record payment.")
+      toast.error(err instanceof ApiError ? err.message : "Could not record payment.")
     }
   }
 
@@ -160,7 +158,6 @@ function RecordPaymentDialog({
                   />
                 </div>
               ))}
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
               <DialogFooter>
                 <Button onClick={() => void onSubmit()} disabled={createPayment.isPending || referenceMissing}>
                   {createPayment.isPending ? "Saving…" : "Record payment"}

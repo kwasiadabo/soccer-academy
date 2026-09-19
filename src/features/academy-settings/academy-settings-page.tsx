@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { ImageUp, Save } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAcademyBranding } from "@/app/academy-branding-context"
@@ -30,8 +31,6 @@ export function AcademySettingsPage() {
   const [trainingLocation, setTrainingLocation] = useState("")
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -57,8 +56,6 @@ export function AcademySettingsPage() {
   }
 
   const onSave = async () => {
-    setServerError(null)
-    setSuccessMessage(false)
     try {
       await updateSettings.mutateAsync({
         name: changedOrUndefined(name, settings?.name),
@@ -70,10 +67,9 @@ export function AcademySettingsPage() {
       })
       onLogoChange(null)
       await refreshBranding()
-      setSuccessMessage(true)
-      setTimeout(() => setSuccessMessage(false), 3000)
+      toast.success("Saved.")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save these settings.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save these settings.")
     }
   }
 
@@ -175,8 +171,6 @@ export function AcademySettingsPage() {
           <TrainingScheduleSection />
 
           <div className="space-y-2">
-            {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
-            {successMessage ? <p className="text-sm text-success">Saved.</p> : null}
             <Button onClick={() => void onSave()} disabled={!hasChanges || updateSettings.isPending}>
               <Save className="size-4" aria-hidden />
               {updateSettings.isPending ? "Saving…" : "Save changes"}

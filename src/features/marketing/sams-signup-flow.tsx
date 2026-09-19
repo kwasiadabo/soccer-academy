@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { ArrowRight, CheckCircle2, ImageUp, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,7 +54,6 @@ type SignupFormValues = z.infer<typeof signupSchema>
 export function SamsSignupFlow({ trigger }: { trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [result, setResult] = useState<SignupAcademyResult | null>(null)
-  const [serverError, setServerError] = useState<string | null>(null)
   const [slugTouched, setSlugTouched] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -83,7 +83,6 @@ export function SamsSignupFlow({ trigger }: { trigger: React.ReactNode }) {
   }
 
   const onSubmit = async (values: SignupFormValues) => {
-    setServerError(null)
     try {
       // The API's DTO whitelist rejects unknown fields — confirmPassword only
       // exists for client-side validation, never sent to the server.
@@ -91,7 +90,7 @@ export function SamsSignupFlow({ trigger }: { trigger: React.ReactNode }) {
       const res = await signup.mutateAsync({ ...input, logo: logoFile ?? undefined })
       setResult(res)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not create your academy. Please try again.")
+      toast.error(err instanceof ApiError ? err.message : "Could not create your academy. Please try again.")
     }
   }
 
@@ -254,7 +253,6 @@ export function SamsSignupFlow({ trigger }: { trigger: React.ReactNode }) {
                 </div>
               </div>
 
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
               <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>

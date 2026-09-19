@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { MessageSquareHeart } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -35,7 +36,6 @@ export function CoachFeedbackDialog({ playerId }: { playerId: string }) {
   const [open, setOpen] = useState(false)
   const [overallRating, setOverallRating] = useState<number | undefined>()
   const [criteriaRatings, setCriteriaRatings] = useState<Record<string, number>>({})
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -45,9 +45,8 @@ export function CoachFeedbackDialog({ playerId }: { playerId: string }) {
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   const onSubmit = async (values: FormValues) => {
-    setServerError(null)
     if (!overallRating) {
-      setServerError("Give an overall rating")
+      toast.error("Give an overall rating")
       return
     }
     try {
@@ -61,8 +60,9 @@ export function CoachFeedbackDialog({ playerId }: { playerId: string }) {
       setOverallRating(undefined)
       setCriteriaRatings({})
       setOpen(false)
+      toast.success("Feedback submitted.")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not submit feedback.")
+      toast.error(err instanceof ApiError ? err.message : "Could not submit feedback.")
     }
   }
 
@@ -115,7 +115,6 @@ export function CoachFeedbackDialog({ playerId }: { playerId: string }) {
             <Textarea rows={3} {...register("comments")} />
           </div>
 
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Submitting…" : "Submit feedback"}

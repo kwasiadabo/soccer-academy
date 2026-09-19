@@ -2,6 +2,7 @@ import { formatDate } from "@/lib/date"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Check, Info, Star, Trophy, Users } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout, type NavItem } from "@/app/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
@@ -65,19 +66,18 @@ function MatchAssessmentDialog({
     return initial
   })
   const [remarks, setRemarks] = useState(existingAssessment?.remarks ?? "")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const onSubmit = async () => {
-    setServerError(null)
     if (Object.keys(ratings).length === 0) {
-      setServerError("Rate at least one dimension")
+      toast.error("Rate at least one dimension")
       return
     }
     try {
       await addAssessment.mutateAsync({ playerId: player.id, ...ratings, remarks: remarks || undefined })
+      toast.success("Rating saved.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save rating.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save rating.")
     }
   }
 
@@ -114,7 +114,6 @@ function MatchAssessmentDialog({
           <Label>Remarks</Label>
           <Textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
         </div>
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter>
           <Button onClick={() => void onSubmit()} disabled={addAssessment.isPending}>
             {addAssessment.isPending ? "Saving…" : existingAssessment ? "Update rating" : "Save rating"}

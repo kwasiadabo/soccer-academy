@@ -5,13 +5,14 @@ import { z } from "zod"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { ArrowLeft, Mail, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AcademyLogo } from "@/design-system/academy-logo"
 import { useAcademyBranding } from "@/app/academy-branding-context"
-import { api } from "@/lib/api-client"
+import { api, ApiError } from "@/lib/api-client"
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -30,8 +31,12 @@ export function ForgotPasswordPage() {
   } = useForm<ForgotPasswordValues>({ resolver: zodResolver(forgotPasswordSchema) })
 
   const onSubmit = async (values: ForgotPasswordValues) => {
-    await api.post<{ message: string }>("/auth/forgot-password", { email: values.email })
-    setSubmitted(true)
+    try {
+      await api.post<{ message: string }>("/auth/forgot-password", { email: values.email })
+      setSubmitted(true)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
+    }
   }
 
   return (

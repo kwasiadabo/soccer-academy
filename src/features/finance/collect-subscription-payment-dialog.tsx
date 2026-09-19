@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { ArrowLeft, Receipt, Search, Wallet } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -116,7 +117,6 @@ function PaymentStep({ playerId, onBack, onDone }: { playerId: string; onBack: (
   const [method, setMethod] = useState<PaymentMethod>("CASH")
   const [reference, setReference] = useState("")
   const [amountReceived, setAmountReceived] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
   const [successReceipt, setSuccessReceipt] = useState<string | null>(null)
 
   const subscriptionInvoices = (invoices ?? [])
@@ -154,13 +154,12 @@ function PaymentStep({ playerId, onBack, onDone }: { playerId: string; onBack: (
   }
 
   const onSubmit = async () => {
-    setServerError(null)
     if (!amountReceived || amountValue <= 0) {
-      setServerError("Enter the amount received")
+      toast.error("Enter the amount received")
       return
     }
     if (amountValue > totalOwed + 0.01) {
-      setServerError(`Amount can't exceed the total owed of ${formatCurrency(totalOwed)}`)
+      toast.error(`Amount can't exceed the total owed of ${formatCurrency(totalOwed)}`)
       return
     }
     const allocations = allocationPreview.map((row) => ({ invoiceId: row.id, amount: row.amount }))
@@ -168,7 +167,7 @@ function PaymentStep({ playerId, onBack, onDone }: { playerId: string; onBack: (
       const result = await createPayment.mutateAsync({ method, reference: reference || undefined, allocations })
       setSuccessReceipt(result.receiptNumber)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not record payment.")
+      toast.error(err instanceof ApiError ? err.message : "Could not record payment.")
     }
   }
 
@@ -301,7 +300,6 @@ function PaymentStep({ playerId, onBack, onDone }: { playerId: string; onBack: (
               </div>
             ) : null}
 
-            {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
             <DialogFooter>
               <Button onClick={() => void onSubmit()} disabled={createPayment.isPending || referenceMissing}>
                 <Receipt /> {createPayment.isPending ? "Saving…" : "Collect payment"}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,7 +55,6 @@ export function ProductFormDialog({
 
   const createProduct = useCreateProduct()
   const updateProduct = useUpdateProduct(product?.id ?? "")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -84,7 +84,6 @@ export function ProductFormDialog({
   }, [open])
 
   const onSubmit = async (values: FormValues) => {
-    setServerError(null)
     try {
       if (product) {
         await updateProduct.mutateAsync(values)
@@ -92,8 +91,9 @@ export function ProductFormDialog({
         await createProduct.mutateAsync(values)
       }
       setOpen(false)
+      toast.success(product ? "Product updated." : "Product created.")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save this product.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save this product.")
     }
   }
 
@@ -132,7 +132,6 @@ export function ProductFormDialog({
             <Label htmlFor="product-description">Description</Label>
             <Textarea id="product-description" rows={3} {...register("description")} />
           </div>
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Saving…" : product ? "Save changes" : "Create product"}

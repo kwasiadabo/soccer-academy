@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { MessageSquarePlus } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,19 +17,18 @@ export interface AssessablePlayer {
 export function RemarkDialog({ player, onClose }: { player: AssessablePlayer; onClose: () => void }) {
   const createRemark = useCreateRemark(player.id)
   const [remark, setRemark] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const onSubmit = async () => {
-    setServerError(null)
     if (!remark.trim()) {
-      setServerError("Enter a note")
+      toast.error("Enter a note")
       return
     }
     try {
       await createRemark.mutateAsync({ remark })
+      toast.success("Note saved.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save note.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save note.")
     }
   }
 
@@ -45,7 +45,6 @@ export function RemarkDialog({ player, onClose }: { player: AssessablePlayer; on
       </DialogHeader>
       <div className="space-y-4">
         <Textarea rows={3} placeholder="e.g. Showed great leadership during drills today…" value={remark} onChange={(e) => setRemark(e.target.value)} />
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter>
           <Button onClick={() => void onSubmit()} disabled={createRemark.isPending}>
             {createRemark.isPending ? "Saving…" : "Save note"}

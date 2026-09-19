@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { KeyRound, Search } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +32,6 @@ type GrantFormValues = z.infer<typeof grantSchema>
 
 function GrantAccessDialog({ guardian, onClose }: { guardian: Guardian; onClose: () => void }) {
   const grantAccess = useGrantGuardianPortalAccess(guardian.id)
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -43,12 +43,12 @@ function GrantAccessDialog({ guardian, onClose }: { guardian: Guardian; onClose:
   })
 
   const onSubmit = async (values: GrantFormValues) => {
-    setServerError(null)
     try {
       await grantAccess.mutateAsync(values)
+      toast.success("Portal access granted.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not grant portal access.")
+      toast.error(err instanceof ApiError ? err.message : "Could not grant portal access.")
     }
   }
 
@@ -66,7 +66,6 @@ function GrantAccessDialog({ guardian, onClose }: { guardian: Guardian; onClose:
           <Input id="guardian-grant-email" type="email" {...register("email")} />
           {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
         </div>
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Granting…" : "Grant access"}

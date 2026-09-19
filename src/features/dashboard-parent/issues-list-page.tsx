@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Plus } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,6 @@ type FormValues = z.infer<typeof schema>
 
 function NewIssueDialog() {
   const [open, setOpen] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
   const createIssue = useCreateIssue()
 
   const {
@@ -48,13 +48,13 @@ function NewIssueDialog() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   const onSubmit = async (values: FormValues) => {
-    setServerError(null)
     try {
       await createIssue.mutateAsync(values)
       reset()
       setOpen(false)
+      toast.success("Issue submitted.")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not submit this issue.")
+      toast.error(err instanceof ApiError ? err.message : "Could not submit this issue.")
     }
   }
 
@@ -81,7 +81,6 @@ function NewIssueDialog() {
             <Textarea id="issue-description" rows={4} {...register("description")} />
             {errors.description ? <p className="text-xs text-destructive">{errors.description.message}</p> : null}
           </div>
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Submitting…" : "Submit issue"}

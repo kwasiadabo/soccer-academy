@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -79,12 +80,10 @@ export function CartReviewPage() {
   const { lines, clear, totalAmount } = useCart()
   const submitOrder = useSubmitOrder()
   const [playerId, setPlayerId] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const onSubmit = async () => {
-    setServerError(null)
     if (!playerId) {
-      setServerError("Select which child this order is for")
+      toast.error("Select which child this order is for")
       return
     }
     try {
@@ -95,7 +94,7 @@ export function CartReviewPage() {
       clear()
       navigate(`/parent/shop/orders/${order.id}`)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not submit this order.")
+      toast.error(err instanceof ApiError ? err.message : "Could not submit this order.")
     }
   }
 
@@ -161,8 +160,6 @@ export function CartReviewPage() {
                   ))}
                 </Select>
               </div>
-
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
               <Button className="w-full" size="lg" onClick={() => void onSubmit()} disabled={submitOrder.isPending}>
                 {submitOrder.isPending ? "Submitting…" : "Submit order"}

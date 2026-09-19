@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import {
   AlertTriangle,
   ArrowLeft,
@@ -86,7 +87,6 @@ function SessionAssessmentForm({
   const createAssessment = useCreatePlayerAssessment(player.id)
   const updateAssessment = useUpdatePlayerAssessment(player.id)
   const [ratings, setRatings] = useState<Record<string, number>>({})
-  const [serverError, setServerError] = useState<string | null>(null)
   const [overriding, setOverriding] = useState(false)
   const sessionActivities = session.sessionActivities
 
@@ -121,12 +121,11 @@ function SessionAssessmentForm({
   }
 
   const onSubmit = async (values: NotesOnlyFormValues) => {
-    setServerError(null)
     const ratingEntries = sessionActivities
       .filter((a) => ratings[a.id] !== undefined)
       .map((a) => ({ sessionActivityId: a.id, ratingValue: ratings[a.id] }))
     if (ratingEntries.length === 0) {
-      setServerError("Rate at least one activity")
+      toast.error("Rate at least one activity")
       return
     }
     try {
@@ -147,7 +146,7 @@ function SessionAssessmentForm({
       }
       onSaved()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save assessment.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save assessment.")
     }
   }
 
@@ -285,7 +284,6 @@ function SessionAssessmentForm({
         <Textarea rows={2} {...register("areasForImprovement")} />
       </div>
 
-      {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
       <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitting || sessionActivities.length === 0}>
           {isSubmitting ? "Saving…" : "Save assessment"}

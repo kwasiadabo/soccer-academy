@@ -163,6 +163,50 @@
 	}
 }
 
+/* Sonner toast theming — maps its neutral/rich-color palette onto our own
+   design tokens (soft tints derived via color-mix) instead of sonner's
+   built-in swatches, so toasts read as part of this system rather than a
+   bolted-on library. The app doesn't follow OS dark mode, so the Toaster is
+   pinned to theme="light" (see main.tsx); the dark block is kept for when a
+   surface that IS wrapped in .dark ever hosts its own Toaster. */
+[data-sonner-toaster] {
+	--border-radius: var(--radius-lg);
+}
+[data-sonner-toaster][data-sonner-theme='light'] {
+	--normal-bg: var(--card);
+	--normal-border: var(--border);
+	--normal-text: var(--card-foreground);
+	--success-bg: color-mix(in oklch, var(--success) 12%, var(--background));
+	--success-border: color-mix(in oklch, var(--success) 35%, var(--background));
+	--success-text: color-mix(in oklch, var(--success) 70%, black);
+	--error-bg: color-mix(in oklch, var(--destructive) 12%, var(--background));
+	--error-border: color-mix(in oklch, var(--destructive) 35%, var(--background));
+	--error-text: color-mix(in oklch, var(--destructive) 70%, black);
+	--warning-bg: color-mix(in oklch, var(--warning) 14%, var(--background));
+	--warning-border: color-mix(in oklch, var(--warning) 35%, var(--background));
+	--warning-text: color-mix(in oklch, var(--warning) 65%, black);
+	--info-bg: color-mix(in oklch, var(--info) 12%, var(--background));
+	--info-border: color-mix(in oklch, var(--info) 35%, var(--background));
+	--info-text: color-mix(in oklch, var(--info) 65%, black);
+}
+[data-sonner-toaster][data-sonner-theme='dark'] {
+	--normal-bg: var(--card);
+	--normal-border: var(--border);
+	--normal-text: var(--card-foreground);
+	--success-bg: color-mix(in oklch, var(--success) 18%, var(--background));
+	--success-border: color-mix(in oklch, var(--success) 40%, var(--background));
+	--success-text: color-mix(in oklch, var(--success) 85%, white);
+	--error-bg: color-mix(in oklch, var(--destructive) 18%, var(--background));
+	--error-border: color-mix(in oklch, var(--destructive) 40%, var(--background));
+	--error-text: color-mix(in oklch, var(--destructive) 85%, white);
+	--warning-bg: color-mix(in oklch, var(--warning) 20%, var(--background));
+	--warning-border: color-mix(in oklch, var(--warning) 40%, var(--background));
+	--warning-text: color-mix(in oklch, var(--warning) 85%, white);
+	--info-bg: color-mix(in oklch, var(--info) 18%, var(--background));
+	--info-border: color-mix(in oklch, var(--info) 40%, var(--background));
+	--info-text: color-mix(in oklch, var(--info) 85%, white);
+}
+
 @media print {
 	body * {
 		visibility: hidden;

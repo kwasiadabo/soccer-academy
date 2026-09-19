@@ -3,6 +3,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import {
   AlertCircle,
   ArrowLeft,
@@ -93,7 +94,6 @@ interface EditPlayerFormValues {
 
 function EditPlayerDetailsDialog({ player }: { player: Player }) {
   const [open, setOpen] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
   const updatePlayer = useUpdatePlayer(player.id)
 
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<EditPlayerFormValues>({
@@ -133,11 +133,9 @@ function EditPlayerDetailsDialog({ player }: { player: Player }) {
         emergencyContactPhone: player.emergencyContactPhone ?? "",
       })
     }
-    setServerError(null)
   }
 
   const onSubmit = async (values: EditPlayerFormValues) => {
-    setServerError(null)
     try {
       await updatePlayer.mutateAsync({
         firstName: values.firstName,
@@ -155,8 +153,9 @@ function EditPlayerDetailsDialog({ player }: { player: Player }) {
         emergencyContactPhone: values.emergencyContactPhone || undefined,
       })
       setOpen(false)
+      toast.success("Changes saved.")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save changes.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save changes.")
     }
   }
 
@@ -244,7 +243,6 @@ function EditPlayerDetailsDialog({ player }: { player: Player }) {
               <Input id="edit-ec-phone" {...register("emergencyContactPhone")} />
             </div>
           </div>
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Saving…" : "Save changes"}

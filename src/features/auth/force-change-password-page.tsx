@@ -5,6 +5,7 @@ import { z } from "zod"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Lock, Eye, EyeOff } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,7 +33,6 @@ export function ForceChangePasswordPage() {
   const { user, changePassword } = useAuth()
   const { name: academyName } = useAcademyBranding()
   const navigate = useNavigate()
-  const [serverError, setServerError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   const {
@@ -42,14 +42,11 @@ export function ForceChangePasswordPage() {
   } = useForm<ChangePasswordValues>({ resolver: zodResolver(changePasswordSchema) })
 
   const onSubmit = async (values: ChangePasswordValues) => {
-    setServerError(null)
     try {
       await changePassword(values.currentPassword, values.newPassword)
       navigate(user ? homePathForRoles(user.roles) : "/", { replace: true })
     } catch (err) {
-      setServerError(
-        err instanceof ApiError ? err.message : "Unable to change your password. Please try again.",
-      )
+      toast.error(err instanceof ApiError ? err.message : "Unable to change your password. Please try again.")
     }
   }
 
@@ -145,12 +142,6 @@ export function ForceChangePasswordPage() {
               <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
             ) : null}
           </div>
-
-          {serverError ? (
-            <p role="alert" aria-live="polite" className="text-sm text-destructive">
-              {serverError}
-            </p>
-          ) : null}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Updating…" : "Update password"}

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Plus, KeyRound, ChevronRight, Search, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,7 +57,6 @@ type GrantFormValues = z.infer<typeof grantSchema>
 
 function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => void }) {
   const grantAccess = useGrantCoachPortalAccess(coach.id)
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -68,19 +68,19 @@ function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => vo
   })
 
   const onSubmit = async (values: GrantFormValues) => {
-    setServerError(null)
     const roleNames = [values.coach && "Coach", values.headCoach && "Head Coach"].filter(
       (v): v is string => !!v,
     )
     if (roleNames.length === 0) {
-      setServerError("Select at least one role")
+      toast.error("Select at least one role")
       return
     }
     try {
       await grantAccess.mutateAsync({ email: values.email, roleNames })
+      toast.success("Portal access granted.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not grant portal access.")
+      toast.error(err instanceof ApiError ? err.message : "Could not grant portal access.")
     }
   }
 
@@ -109,7 +109,6 @@ function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => vo
             Head Coach
           </label>
         </div>
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Granting…" : "Grant access"}

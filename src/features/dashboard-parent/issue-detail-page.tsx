@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Send } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -23,7 +24,6 @@ export function IssueDetailPage() {
   const { data: issue, isLoading, isError, refetch } = useMyIssue(issueId)
   const addMessage = useAddMyIssueMessage(issueId ?? "")
   const [reply, setReply] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
 
   // Fetching the issue marks any staff replies on it read server-side — refresh the
   // sidebar badge count to reflect that immediately.
@@ -35,12 +35,11 @@ export function IssueDetailPage() {
 
   const onReply = async () => {
     if (!reply.trim()) return
-    setServerError(null)
     try {
       await addMessage.mutateAsync(reply.trim())
       setReply("")
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not send your reply.")
+      toast.error(err instanceof ApiError ? err.message : "Could not send your reply.")
     }
   }
 
@@ -92,7 +91,6 @@ export function IssueDetailPage() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
               />
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => void onReply()} disabled={!reply.trim() || addMessage.isPending}>
                   <Send /> {addMessage.isPending ? "Sending…" : "Send"}

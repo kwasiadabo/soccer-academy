@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Pencil, Plus, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,7 +50,6 @@ function SlotFormDialog({
 }) {
   const addSlot = useAddTrainingScheduleSlot()
   const updateSlot = useUpdateTrainingScheduleSlot()
-  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -67,7 +67,6 @@ function SlotFormDialog({
   })
 
   const onSubmit = async (values: FormValues) => {
-    setServerError(null)
     try {
       const input = { ...values, location: values.location?.trim() || undefined }
       if (slot) {
@@ -78,7 +77,7 @@ function SlotFormDialog({
       reset()
       onOpenChange(false)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not save this session.")
+      toast.error(err instanceof ApiError ? err.message : "Could not save this session.")
     }
   }
 
@@ -118,7 +117,6 @@ function SlotFormDialog({
             <Label htmlFor="slot-location">Location (optional)</Label>
             <Input id="slot-location" placeholder="e.g. Achimota Astro Pitch" {...register("location")} />
           </div>
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Saving…" : slot ? "Save changes" : "Add session"}
@@ -144,6 +142,8 @@ export function TrainingScheduleSection() {
     setRemovingId(slot.id)
     try {
       await removeSlot.mutateAsync(slot.id)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not remove this session.")
     } finally {
       setRemovingId(null)
     }

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowLeft, CheckCircle2, Footprints, Package, Search, Shirt } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -208,7 +209,6 @@ function CheckoutView({
   const [guestName, setGuestName] = useState("")
   const [guestPhone, setGuestPhone] = useState("")
   const [guestEmail, setGuestEmail] = useState("")
-  const [error, setError] = useState<string | null>(null)
 
   const lookupPlayer = useLookupPlayer()
   const createOrder = useCreateGuestOrder()
@@ -217,19 +217,17 @@ function CheckoutView({
   const total = unitPrice * quantity
 
   const onFindPlayer = async () => {
-    setError(null)
     setPlayer(null)
     try {
       const found = await lookupPlayer.mutateAsync(playerCode.trim())
       setPlayer(found)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not find that player.")
+      toast.error(err instanceof ApiError ? err.message : "Could not find that player.")
     }
   }
 
   const onSubmit = async () => {
     if (!player) return
-    setError(null)
     try {
       const result = await createOrder.mutateAsync({
         playerCode: playerCode.trim(),
@@ -240,7 +238,7 @@ function CheckoutView({
       })
       onDone(result.totalAmount)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not place the order.")
+      toast.error(err instanceof ApiError ? err.message : "Could not place the order.")
     }
   }
 
@@ -315,7 +313,6 @@ function CheckoutView({
           </div>
         ) : null}
 
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
 
       <DialogFooter>

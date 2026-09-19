@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { CheckCircle2, ArrowRight } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,7 +37,6 @@ type LeadFormValues = z.infer<typeof leadSchema>
 export function SamsSignupDialog({ trigger }: { trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
   const submitLead = useSubmitPlatformLead()
 
   const {
@@ -47,12 +47,11 @@ export function SamsSignupDialog({ trigger }: { trigger: React.ReactNode }) {
   } = useForm<LeadFormValues>({ resolver: zodResolver(leadSchema) })
 
   const onSubmit = async (values: LeadFormValues) => {
-    setServerError(null)
     try {
       await submitLead.mutateAsync(values)
       setSubmitted(true)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.")
     }
   }
 
@@ -128,8 +127,6 @@ export function SamsSignupDialog({ trigger }: { trigger: React.ReactNode }) {
                 <Label htmlFor="message">Anything else we should know? (optional)</Label>
                 <Textarea id="message" rows={3} {...register("message")} />
               </div>
-
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
               <DialogFooter>
                 <Button type="submit" disabled={isSubmitting}>

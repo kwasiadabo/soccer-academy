@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Receipt } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,7 +47,6 @@ export function RecordMerchandisePaymentDialog({
   const [amount, setAmount] = useState("")
   const [method, setMethod] = useState<PaymentMethod>("CASH")
   const [reference, setReference] = useState("")
-  const [serverError, setServerError] = useState<string | null>(null)
   const [successReceipt, setSuccessReceipt] = useState<string | null>(null)
 
   const onOpenChange = (next: boolean) => {
@@ -57,7 +57,6 @@ export function RecordMerchandisePaymentDialog({
       setAmount("")
       setReference("")
       setMethod("CASH")
-      setServerError(null)
       setSuccessReceipt(null)
     }
   }
@@ -65,10 +64,9 @@ export function RecordMerchandisePaymentDialog({
   const referenceMissing = method === "MOBILE_MONEY" && !reference.trim()
 
   const onSubmit = async () => {
-    setServerError(null)
     const value = Number(amount)
     if (!value || value <= 0 || value > remaining + 0.01) {
-      setServerError(`Enter an amount up to ${formatCurrency(remaining)}`)
+      toast.error(`Enter an amount up to ${formatCurrency(remaining)}`)
       return
     }
     try {
@@ -79,7 +77,7 @@ export function RecordMerchandisePaymentDialog({
       })
       setSuccessReceipt(result.receiptNumber)
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not record payment.")
+      toast.error(err instanceof ApiError ? err.message : "Could not record payment.")
     }
   }
 
@@ -141,7 +139,6 @@ export function RecordMerchandisePaymentDialog({
                 </Label>
                 <Input id="merch-reference" value={reference} onChange={(e) => setReference(e.target.value)} />
               </div>
-              {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
               <DialogFooter>
                 <Button onClick={() => void onSubmit()} disabled={createPayment.isPending || referenceMissing}>
                   {createPayment.isPending ? "Saving…" : "Record payment"}

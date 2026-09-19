@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import type { Location } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,10 +30,8 @@ export function LoginPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const from = (location.state as { from?: Location } | null)?.from;
-	const [serverError, setServerError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [justSignedUpFor, setJustSignedUpFor] = useState<string | null>(null);
 
 	// Landed here right after a self-serve signup on the root SAMS domain (see
 	// sams-signup-flow.tsx) — there's no real subdomain to have arrived on yet
@@ -41,7 +40,7 @@ export function LoginPage() {
 		const academy = searchParams.get('academy');
 		if (!academy) return;
 		setAcademySlugOverride(academy);
-		setJustSignedUpFor(academy);
+		toast.success('Your academy is ready — sign in with the email and password you just chose.');
 		searchParams.delete('academy');
 		setSearchParams(searchParams, { replace: true });
 		// Only ever run once, for the param present on the initial navigation.
@@ -55,17 +54,12 @@ export function LoginPage() {
 	} = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
 	const onSubmit = async (values: LoginFormValues) => {
-		setServerError(null);
 		try {
 			const user = await login(values.email, values.password);
 			const destination = from ? `${from.pathname}${from.search}${from.hash}` : homePathForRoles(user.roles);
 			navigate(destination, { replace: true });
 		} catch (err) {
-			setServerError(
-				err instanceof ApiError
-					? err.message
-					: 'Unable to log in. Please try again.',
-			);
+			toast.error(err instanceof ApiError ? err.message : 'Unable to log in. Please try again.');
 		}
 	};
 
@@ -127,11 +121,6 @@ export function LoginPage() {
 						<p className="text-sm text-white/60">
 							Enter your credentials to access your account
 						</p>
-						{justSignedUpFor ? (
-							<p className="mt-3! rounded-lg bg-lime-400/10 px-3 py-2 text-xs font-medium text-lime-400">
-								Your academy is ready — sign in with the email and password you just chose.
-							</p>
-						) : null}
 					</div>
 
 					<form
@@ -205,16 +194,6 @@ export function LoginPage() {
 								</p>
 							) : null}
 						</div>
-
-						{serverError ? (
-							<p
-								role="alert"
-								aria-live="polite"
-								className="text-sm text-destructive"
-							>
-								{serverError}
-							</p>
-						) : null}
 
 						<Button
 							type="submit"

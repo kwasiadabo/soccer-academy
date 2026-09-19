@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Ban, CheckCircle2, LogOut, Plus, Save } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,7 +75,6 @@ function OnboardAcademyDialog({ open, onOpenChange, onOnboarded }: {
   onOnboarded: (result: OnboardAcademyResult) => void
 }) {
   const onboard = useOnboardAcademy()
-  const [serverError, setServerError] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -83,7 +83,6 @@ function OnboardAcademyDialog({ open, onOpenChange, onOnboarded }: {
   } = useForm<OnboardFormValues>({ resolver: zodResolver(onboardSchema) })
 
   const onSubmit = async (values: OnboardFormValues) => {
-    setServerError(null)
     try {
       const result = await onboard.mutateAsync({
         ...values,
@@ -93,7 +92,7 @@ function OnboardAcademyDialog({ open, onOpenChange, onOnboarded }: {
       onOpenChange(false)
       onOnboarded(result)
     } catch (err) {
-      setServerError(err instanceof PlatformApiError ? err.message : "Could not onboard this academy.")
+      toast.error(err instanceof PlatformApiError ? err.message : "Could not onboard this academy.")
     }
   }
 
@@ -152,8 +151,6 @@ function OnboardAcademyDialog({ open, onOpenChange, onOnboarded }: {
               ) : null}
             </div>
           </div>
-
-          {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -269,7 +266,15 @@ function AcademiesTab() {
                         size="sm"
                         variant="outline"
                         disabled={setStatus.isPending}
-                        onClick={() => setStatus.mutate({ id: academy.id, status: "ACTIVE" })}
+                        onClick={() =>
+                          setStatus.mutate(
+                            { id: academy.id, status: "ACTIVE" },
+                            {
+                              onError: (err) =>
+                                toast.error(err instanceof PlatformApiError ? err.message : "Could not reactivate this academy."),
+                            },
+                          )
+                        }
                       >
                         <CheckCircle2 className="size-4" aria-hidden />
                         Reactivate
@@ -279,7 +284,15 @@ function AcademiesTab() {
                         size="sm"
                         variant="outline"
                         disabled={setStatus.isPending}
-                        onClick={() => setStatus.mutate({ id: academy.id, status: "SUSPENDED" })}
+                        onClick={() =>
+                          setStatus.mutate(
+                            { id: academy.id, status: "SUSPENDED" },
+                            {
+                              onError: (err) =>
+                                toast.error(err instanceof PlatformApiError ? err.message : "Could not suspend this academy."),
+                            },
+                          )
+                        }
                       >
                         <Ban className="size-4" aria-hidden />
                         Suspend
@@ -346,7 +359,6 @@ function PricingTab() {
   const { data: pricing, isLoading, isError, refetch } = usePlatformPricing()
   const updatePricing = useUpdatePlatformPricing()
   const [value, setValue] = useState("")
-  const [savedMessage, setSavedMessage] = useState(false)
 
   useEffect(() => {
     if (pricing) setValue(String(pricing.pricePerPlayer))
@@ -355,9 +367,12 @@ function PricingTab() {
   const onSave = async () => {
     const pricePerPlayer = Number(value)
     if (!Number.isFinite(pricePerPlayer) || pricePerPlayer < 0) return
-    await updatePricing.mutateAsync(pricePerPlayer)
-    setSavedMessage(true)
-    setTimeout(() => setSavedMessage(false), 2500)
+    try {
+      await updatePricing.mutateAsync(pricePerPlayer)
+      toast.success("Price updated.")
+    } catch (err) {
+      toast.error(err instanceof PlatformApiError ? err.message : "Could not update the price.")
+    }
   }
 
   if (isLoading) return <LoadingState rows={2} />
@@ -390,8 +405,6 @@ function PricingTab() {
           Save
         </Button>
       </div>
-      {savedMessage ? <p className="text-sm text-success">Price updated.</p> : null}
-      {updatePricing.isError ? <p className="text-sm text-destructive">Could not update the price.</p> : null}
     </div>
   )
 }

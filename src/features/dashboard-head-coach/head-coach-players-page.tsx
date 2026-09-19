@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { IdCard, Search, UserCog, X } from "lucide-react"
+import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { Badge } from "@/components/ui/badge"
@@ -40,15 +41,13 @@ function PlayerStatusDialog({ player, onClose }: { player: Player; onClose: () =
   const [status, setStatus] = useState<PlayerSettableStatus>(
     player.status === "SUSPENDED" || player.status === "WITHDRAWN" ? player.status : "ACTIVE",
   )
-  const [serverError, setServerError] = useState<string | null>(null)
-
   const onSave = async () => {
-    setServerError(null)
     try {
       await updateStatus.mutateAsync(status)
+      toast.success("Status updated.")
       onClose()
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Could not update status.")
+      toast.error(err instanceof ApiError ? err.message : "Could not update status.")
     }
   }
 
@@ -78,7 +77,6 @@ function PlayerStatusDialog({ player, onClose }: { player: Player; onClose: () =
             <option value="WITHDRAWN">Withdrawn</option>
           </Select>
         </div>
-        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
         <DialogFooter>
           <Button type="button" disabled={updateStatus.isPending} onClick={() => void onSave()}>
             {updateStatus.isPending ? "Saving…" : "Save"}
