@@ -110,18 +110,26 @@ export default function App() {
       <Route element={<ProtectedRoute allowedRoles={[ROLE_NAMES.ADMIN]} />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/staff" element={<StaffPage />} />
-        <Route path="/admin/users" element={<UsersPage />} />
         <Route path="/admin/billing" element={<BillingPage />} />
-        <Route path="/admin/settings" element={<AcademySettingsPage />} />
         <Route path="/admin/assessment-templates" element={<AdminAssessmentTemplatesPage />} />
         <Route path="/admin/staff/:coachId" element={<AdminCoachProfilePage />} />
+      </Route>
+      {/* The "Setup" sidebar section — shared configuration screens every staff
+          role (not just Admin) can reach: user accounts, catalog, academy
+          branding, fee types, and age categories. */}
+      <Route
+        element={<ProtectedRoute allowedRoles={[ROLE_NAMES.ADMIN, ROLE_NAMES.RECEPTIONIST, ROLE_NAMES.HEAD_COACH]} />}
+      >
+        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin/settings" element={<AcademySettingsPage />} />
+        <Route path="/receptionist/finance/fee-types" element={<FeeTypesPage />} />
+        <Route path="/head-coach/age-categories" element={<HeadCoachAgeCategoriesPage />} />
       </Route>
       <Route element={<ProtectedRoute allowedRoles={[ROLE_NAMES.RECEPTIONIST, ROLE_NAMES.ADMIN]} />}>
         <Route path="/receptionist" element={<ReceptionistDashboard />} />
         <Route path="/receptionist/dashboard" element={<ReceptionistStatsPage />} />
         <Route path="/receptionist/players/new" element={<NewRegistrationPage />} />
         <Route path="/receptionist/players/:playerId" element={<PlayerProfilePage />} />
-        <Route path="/receptionist/finance/fee-types" element={<FeeTypesPage />} />
         <Route path="/receptionist/finance/report" element={<PaymentsReportPage />} />
         <Route path="/receptionist/finance/monthly-billing" element={<MonthlyBillingPage />} />
         <Route path="/receptionist/finance/aging" element={<DebtorsAgingPage />} />
@@ -140,7 +148,6 @@ export default function App() {
         <Route path="/head-coach/approvals" element={<TrainingApprovalQueuePage />} />
         <Route path="/head-coach/templates" element={<HeadCoachAssessmentTemplatesPage />} />
         <Route path="/head-coach/teams" element={<HeadCoachTeamsPage />} />
-        <Route path="/head-coach/age-categories" element={<HeadCoachAgeCategoriesPage />} />
         <Route path="/head-coach/players" element={<HeadCoachPlayersPage />} />
         <Route path="/head-coach/coaches" element={<HeadCoachCoachesPage />} />
         <Route path="/head-coach/coaches/:coachId" element={<HeadCoachCoachProfilePage />} />

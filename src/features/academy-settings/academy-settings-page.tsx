@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAcademyBranding } from "@/app/academy-branding-context"
+import { useStaffNavItems } from "@/features/issues/staff-issues-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,6 +24,7 @@ export function AcademySettingsPage() {
   const { data: settings, isLoading, isError, refetch } = useAcademySettings()
   const updateSettings = useUpdateAcademySettings()
   const { refresh: refreshBranding } = useAcademyBranding()
+  const navItems = useStaffNavItems()
 
   const [name, setName] = useState("")
   const [brandName, setBrandName] = useState("")
@@ -83,7 +85,7 @@ export function AcademySettingsPage() {
     !!changedOrUndefined(trainingLocation, settings?.trainingLocation ?? undefined)
 
   return (
-    <DashboardLayout title="Academy Settings">
+    <DashboardLayout title="Academy Settings" navItems={navItems}>
       {isLoading ? (
         <LoadingState rows={3} />
       ) : isError ? (

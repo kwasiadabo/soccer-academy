@@ -1,10 +1,11 @@
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { AgeCategorySection } from "@/features/dashboard-admin/age-category-section"
-import { HEAD_COACH_NAV_ITEMS } from "./head-coach-dashboard"
+import { useStaffNavItems } from "@/features/issues/staff-issues-page"
 
 export function HeadCoachAgeCategoriesPage() {
+  const navItems = useStaffNavItems()
   return (
-    <DashboardLayout title="Age Categories" navItems={HEAD_COACH_NAV_ITEMS}>
+    <DashboardLayout title="Age Categories" navItems={navItems}>
       <AgeCategorySection />
     </DashboardLayout>
   )

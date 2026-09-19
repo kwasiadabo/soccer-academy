@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertOctagon, Cake, CalendarCheck, CalendarDays, ClipboardList, CreditCard, FileBarChart, FileText, Images, LayoutDashboard, LifeBuoy, Package, Plus, Search, ShoppingBag, Tag, X } from "lucide-react"
+import { AlertOctagon, Cake, CalendarCheck, CalendarDays, ClipboardList, CreditCard, FileBarChart, FileText, Images, KeyRound, Layers, LayoutDashboard, LifeBuoy, Package, Plus, Search, Settings, ShoppingBag, Tag, X } from "lucide-react"
 
 import { DashboardLayout, type NavItem } from "@/app/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -25,12 +25,17 @@ export const RECEPTIONIST_NAV_ITEMS: NavItem[] = [
   { to: "/receptionist/finance/monthly-billing", label: "Monthly Billing", icon: CalendarDays },
   { to: "/receptionist/finance/report", label: "Payments Report", icon: FileBarChart },
   { to: "/receptionist/finance/aging", label: "Owing Report", icon: AlertOctagon },
-  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag },
   { to: "/issues", label: "Issues", icon: LifeBuoy },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag },
   { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart },
-  { to: "/merchandise/products", label: "Products", icon: Package },
   { to: "/gallery/manage", label: "Gallery", icon: Images },
+
+  // Shared configuration screens — every staff role (not just Admin) can reach these.
+  { to: "/admin/users", label: "Users", icon: KeyRound, section: "Setup" },
+  { to: "/merchandise/products", label: "Products", icon: Package, section: "Setup" },
+  { to: "/admin/settings", label: "Academy Settings", icon: Settings, section: "Setup" },
+  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag, section: "Setup" },
+  { to: "/head-coach/age-categories", label: "Age Group Category", icon: Layers, section: "Setup" },
 ]
 
 const STATUS_OPTIONS = [

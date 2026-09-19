@@ -10,13 +10,16 @@ import {
   FileBarChart,
   IdCard,
   Images,
+  KeyRound,
   Layers,
   LayoutDashboard,
   LifeBuoy,
   Package,
+  Settings,
   Shield,
   ShieldCheck,
   ShoppingBag,
+  Tag,
   Trophy,
   Users,
 } from "lucide-react"
@@ -41,7 +44,6 @@ export const HEAD_COACH_NAV_ITEMS: NavItem[] = [
   { to: "/head-coach/players", label: "Players", icon: IdCard },
   { to: "/receptionist/finance", label: "Payments & Debtors", icon: CreditCard },
   { to: "/head-coach/teams", label: "Teams", icon: Shield },
-  { to: "/head-coach/age-categories", label: "Age Categories", icon: Layers },
   { to: "/head-coach/training-sessions", label: "Attendance", icon: CalendarCheck2 },
   { to: "/head-coach/session-management", label: "Manage Sessions", icon: CalendarRange },
   { to: "/head-coach/coaches", label: "Coaches", icon: Users },
@@ -50,8 +52,14 @@ export const HEAD_COACH_NAV_ITEMS: NavItem[] = [
   { to: "/issues", label: "Issues", icon: LifeBuoy },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag },
   { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart },
-  { to: "/merchandise/products", label: "Products", icon: Package },
   { to: "/gallery/manage", label: "Gallery", icon: Images },
+
+  // Shared configuration screens — every staff role (not just Admin) can reach these.
+  { to: "/admin/users", label: "Users", icon: KeyRound, section: "Setup" },
+  { to: "/merchandise/products", label: "Products", icon: Package, section: "Setup" },
+  { to: "/admin/settings", label: "Academy Settings", icon: Settings, section: "Setup" },
+  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag, section: "Setup" },
+  { to: "/head-coach/age-categories", label: "Age Group Category", icon: Layers, section: "Setup" },
 ]
 
 function isWithinNextDays(dateStr: string, days: number): boolean {

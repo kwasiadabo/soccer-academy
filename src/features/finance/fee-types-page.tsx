@@ -24,7 +24,7 @@ import {
 import { EmptyState } from "@/design-system/empty-state"
 import { LoadingState } from "@/design-system/loading-state"
 import { ErrorState } from "@/design-system/error-state"
-import { RECEPTIONIST_NAV_ITEMS } from "@/features/dashboard-receptionist/receptionist-dashboard"
+import { useStaffNavItems } from "@/features/issues/staff-issues-page"
 import { useAllFeeItems, useCreateFeeItem, useUpdateFeeItem, type FeeItem } from "./finance-api"
 
 // ---------- Fee Items (raw catalog) ----------
@@ -271,8 +271,9 @@ function FeeItemsCard() {
 }
 
 export function FeeTypesPage() {
+  const navItems = useStaffNavItems()
   return (
-    <DashboardLayout title="Fee Items" navItems={RECEPTIONIST_NAV_ITEMS}>
+    <DashboardLayout title="Fee Items" navItems={navItems}>
       <div className="space-y-6">
         <FeeItemsCard />
       </div>

@@ -22,6 +22,7 @@ import {
   Images,
   KeyRound,
   LayoutDashboard,
+  Layers,
   LifeBuoy,
   LogOut,
   Menu,
@@ -72,14 +73,18 @@ interface DashboardLayoutProps {
 const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true, section: "Admin" },
   { to: "/admin/staff", label: "Staff", icon: Users, section: "Admin" },
-  { to: "/admin/users", label: "Users", icon: KeyRound, section: "Admin" },
   { to: "/admin/billing", label: "Billing", icon: Wallet, section: "Admin" },
-  { to: "/admin/settings", label: "Academy Settings", icon: Settings, section: "Admin" },
   { to: "/issues", label: "Issues", icon: LifeBuoy, section: "Admin" },
   { to: "/merchandise/orders", label: "Orders", icon: ShoppingBag, section: "Admin" },
   { to: "/merchandise/orders/report", label: "Orders Report", icon: FileBarChart, section: "Admin" },
-  { to: "/merchandise/products", label: "Products", icon: Package, section: "Admin" },
   { to: "/gallery/manage", label: "Gallery", icon: Images, section: "Admin" },
+
+  // Shared configuration screens — every staff role (not just Admin) can reach these.
+  { to: "/admin/users", label: "Users", icon: KeyRound, section: "Setup" },
+  { to: "/merchandise/products", label: "Products", icon: Package, section: "Setup" },
+  { to: "/admin/settings", label: "Academy Settings", icon: Settings, section: "Setup" },
+  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag, section: "Setup" },
+  { to: "/head-coach/age-categories", label: "Age Group Category", icon: Layers, section: "Setup" },
 
   { to: "/receptionist", label: "Players", icon: ClipboardList, end: true, section: "Receptionist" },
   { to: "/receptionist/birthdays", label: "Birthdays", icon: Cake, section: "Receptionist" },
@@ -89,7 +94,6 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: "/receptionist/finance/monthly-billing", label: "Monthly Billing", icon: CalendarDays, section: "Receptionist" },
   { to: "/receptionist/finance/report", label: "Payments Report", icon: FileBarChart, section: "Receptionist" },
   { to: "/receptionist/finance/aging", label: "Owing Report", icon: AlertOctagon, section: "Receptionist" },
-  { to: "/receptionist/finance/fee-types", label: "Fee Items", icon: Tag, section: "Receptionist" },
 
   { to: "/head-coach", label: "Dashboard", icon: Award, end: true, section: "Head Coach" },
   { to: "/head-coach/approvals", label: "Approvals", icon: CheckCircle2, section: "Head Coach" },

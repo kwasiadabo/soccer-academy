@@ -8,6 +8,7 @@ import { ROLE_NAMES } from "@/lib/shared-types"
 
 import { DashboardLayout } from "@/app/dashboard-layout"
 import { useAuth } from "@/app/auth-context"
+import { useStaffNavItems } from "@/features/issues/staff-issues-page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -492,6 +493,7 @@ function UserRow({
 
 export function UsersPage() {
   const { user: currentUser } = useAuth()
+  const navItems = useStaffNavItems()
   const { data, isLoading, isError, refetch } = useUsers()
   const [createOpen, setCreateOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
@@ -524,7 +526,7 @@ export function UsersPage() {
   }, [data, search, roleFilter, statusFilter])
 
   return (
-    <DashboardLayout title="Users">
+    <DashboardLayout title="Users" navItems={navItems}>
       <Card>
         <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <div>
