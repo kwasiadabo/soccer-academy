@@ -8,7 +8,7 @@ const OVERRIDE_KEY = "sams-academy-slug-override"
 const ROOT_HOSTS = ["sams.variablexsolutions.com", "lvh.me"]
 
 // Set right after a self-serve signup on the root SAMS domain (see
-// sams-signup-flow.tsx) — there's no real subdomain to land on yet in local
+// sams-signup-page.tsx) — there's no real subdomain to land on yet in local
 // dev, so this stands in for one until the next real-subdomain visit clears it.
 export function setAcademySlugOverride(slug: string) {
   try {

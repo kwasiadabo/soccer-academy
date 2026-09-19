@@ -16,7 +16,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { SamsMark } from "@/design-system/sams-mark"
 import { SamsSignupDialog } from "./sams-signup-dialog"
-import { SamsSignupFlow } from "./sams-signup-flow"
 import { usePublicPricing } from "./sams-pricing-api"
 
 const FEATURES = [
@@ -80,6 +79,7 @@ export function SamsLandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { data: pricing } = usePublicPricing()
   const pricePerPlayer = pricing?.pricePerPlayer ?? 20
+  const signupFee = pricing?.signupFee ?? 0
 
   return (
     <div className="min-h-dvh overflow-x-hidden bg-[#0B0F0A] text-white">
@@ -97,13 +97,9 @@ export function SamsLandingPage() {
             <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">
               <Link to="/login">Sign in</Link>
             </Button>
-            <SamsSignupFlow
-              trigger={
-                <Button size="sm" className="bg-lime-400 text-[#0B0F0A] hover:bg-lime-300">
-                  Sign up
-                </Button>
-              }
-            />
+            <Button asChild size="sm" className="bg-lime-400 text-[#0B0F0A] hover:bg-lime-300">
+              <Link to="/signup">Sign up</Link>
+            </Button>
           </div>
 
           <button
@@ -123,13 +119,9 @@ export function SamsLandingPage() {
               <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">
                 <Link to="/login">Sign in</Link>
               </Button>
-              <SamsSignupFlow
-                trigger={
-                  <Button size="sm" className="bg-lime-400 text-[#0B0F0A] hover:bg-lime-300">
-                    Sign up
-                  </Button>
-                }
-              />
+              <Button asChild size="sm" className="bg-lime-400 text-[#0B0F0A] hover:bg-lime-300">
+                <Link to="/signup">Sign up</Link>
+              </Button>
             </div>
           </div>
         ) : null}
@@ -189,14 +181,12 @@ export function SamsLandingPage() {
             transition={{ duration: 0.4, delay: 0.15 }}
             className="mt-9 flex flex-wrap gap-3"
           >
-            <SamsSignupFlow
-              trigger={
-                <Button size="lg" className="h-11 bg-lime-400 px-6 text-base text-[#0B0F0A] hover:bg-lime-300">
-                  Bring your academy onto SAMS
-                  <ArrowRight className="size-4" aria-hidden />
-                </Button>
-              }
-            />
+            <Button asChild size="lg" className="h-11 bg-lime-400 px-6 text-base text-[#0B0F0A] hover:bg-lime-300">
+              <Link to="/signup">
+                Bring your academy onto SAMS
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </Button>
             <Button
               asChild
               size="lg"
@@ -258,7 +248,7 @@ export function SamsLandingPage() {
               ONE PLAN. <span className="text-lime-400">NO SURPRISES.</span>
             </h2>
             <p className="mt-3 text-white/60">
-              Pay only for the players actually training with you — nothing per-staff-seat, nothing per-module.
+              Two simple charges — nothing per-staff-seat, nothing per-module, nothing hidden.
             </p>
           </div>
 
@@ -273,7 +263,12 @@ export function SamsLandingPage() {
             </p>
             <p className="mt-2 text-sm text-white/50">Billed monthly for every currently active player — nothing for withdrawn or draft players.</p>
 
-            <ul className="mt-8 space-y-3 text-left">
+            <div className="mt-6 flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left">
+              <span className="text-sm text-white/70">One-time signup fee</span>
+              <span className="text-sm font-bold tabular-nums text-white">GH₵{signupFee}</span>
+            </div>
+
+            <ul className="mt-6 space-y-3 text-left">
               {PRICING_INCLUDES.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
                   <Check className="mt-0.5 size-4 shrink-0 text-lime-400" aria-hidden />
@@ -282,14 +277,12 @@ export function SamsLandingPage() {
               ))}
             </ul>
 
-            <SamsSignupFlow
-              trigger={
-                <Button size="lg" className="mt-8 h-11 w-full bg-lime-400 text-base text-[#0B0F0A] hover:bg-lime-300">
-                  Bring your academy onto SAMS
-                  <ArrowRight className="size-4" aria-hidden />
-                </Button>
-              }
-            />
+            <Button asChild size="lg" className="mt-8 h-11 w-full bg-lime-400 text-base text-[#0B0F0A] hover:bg-lime-300">
+              <Link to="/signup">
+                Bring your academy onto SAMS
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

@@ -12,6 +12,7 @@ import { LoginPage } from "@/features/auth/login-page"
 import { ForgotPasswordPage } from "@/features/auth/forgot-password-page"
 import { ResetPasswordPage } from "@/features/auth/reset-password-page"
 import { SignupPaymentCallbackPage } from "@/features/marketing/signup-payment-callback-page"
+import { SamsSignupPage } from "@/features/marketing/sams-signup-page"
 import { ForceChangePasswordPage } from "@/features/auth/force-change-password-page"
 import { LandingPage } from "@/features/marketing/landing-page"
 import { SamsLandingPage } from "@/features/marketing/sams-landing-page"
@@ -89,6 +90,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/signup" element={<SamsSignupPage />} />
       <Route path="/signup/callback" element={<SignupPaymentCallbackPage />} />
       <Route path="/" element={<RootRedirect />} />
       {/* This academy's own public page (gallery, player-of-the-week, "join us") —

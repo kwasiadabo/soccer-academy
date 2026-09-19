@@ -34,7 +34,7 @@ export function LoginPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
 
 	// Landed here right after a self-serve signup on the root SAMS domain (see
-	// sams-signup-flow.tsx) — there's no real subdomain to have arrived on yet
+	// sams-signup-page.tsx) — there's no real subdomain to have arrived on yet
 	// in local dev, so this stands in for one until the URL param is consumed.
 	useEffect(() => {
 		const academy = searchParams.get('academy');
