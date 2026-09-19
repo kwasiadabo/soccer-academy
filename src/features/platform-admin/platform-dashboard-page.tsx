@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -32,8 +33,10 @@ import {
   usePlatformLeads,
   usePlatformPricing,
   useSetAcademyStatus,
+  useUpdateLeadStatus,
   useUpdatePlatformPricing,
   type AcademyStatus,
+  type LeadStatus,
   type OnboardAcademyResult,
   type SubscriptionStatus,
 } from "./platform-admin-api"
@@ -58,6 +61,21 @@ function StatusBadge({ status }: { status: AcademyStatus }) {
   if (status === "SUSPENDED") return <Badge variant="destructive">Suspended</Badge>
   if (status === "PAST_DUE") return <Badge variant="warning">Past due</Badge>
   return <Badge variant="secondary">Pending</Badge>
+}
+
+const LEAD_STATUSES: LeadStatus[] = ["NEW", "CONTACTED", "CONVERTED", "CLOSED"]
+const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  NEW: "New",
+  CONTACTED: "Contacted",
+  CONVERTED: "Converted",
+  CLOSED: "Closed",
+}
+
+function LeadStatusBadge({ status }: { status: LeadStatus }) {
+  if (status === "NEW") return <Badge variant="info">New</Badge>
+  if (status === "CONTACTED") return <Badge variant="warning">Contacted</Badge>
+  if (status === "CONVERTED") return <Badge variant="success">Converted</Badge>
+  return <Badge variant="secondary">Closed</Badge>
 }
 
 function subscriptionLabel(status: SubscriptionStatus | null, periodEnd: string | null): string {
@@ -314,6 +332,7 @@ function AcademiesTab() {
 
 function LeadsTab() {
   const { data: leads, isLoading, isError, refetch } = usePlatformLeads()
+  const updateStatus = useUpdateLeadStatus()
 
   if (isLoading) return <LoadingState rows={4} />
   if (isError) return <ErrorState onRetry={() => void refetch()} />
@@ -321,36 +340,72 @@ function LeadsTab() {
     return <EmptyState title="No leads yet" description="Submissions from the SAMS sign-up form will show up here." />
   }
 
+  const newCount = leads.filter((lead) => lead.status === "NEW").length
+
+  const onStatusChange = async (id: string, status: LeadStatus) => {
+    try {
+      await updateStatus.mutateAsync({ id, status })
+    } catch (err) {
+      toast.error(err instanceof PlatformApiError ? err.message : "Could not update lead status.")
+    }
+  }
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Academy</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Message</TableHead>
-            <TableHead className="text-right">Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell className="font-medium">{lead.academyName}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">{lead.trainingLocation}</TableCell>
-              <TableCell>
-                <p>{lead.contactName}</p>
-                <p className="text-xs text-muted-foreground">{lead.contactEmail}</p>
-                {lead.contactPhone ? <p className="text-xs text-muted-foreground">{lead.contactPhone}</p> : null}
-              </TableCell>
-              <TableCell className="max-w-xs text-sm text-muted-foreground">{lead.message || "—"}</TableCell>
-              <TableCell className="text-right text-sm text-muted-foreground">
-                {formatDate(lead.createdAt)}
-              </TableCell>
+    <div className="space-y-3">
+      {newCount > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          <Badge variant="info">{newCount} new</Badge> awaiting follow-up.
+        </p>
+      ) : null}
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Academy</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Message</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Submitted</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {leads.map((lead) => (
+              <TableRow key={lead.id}>
+                <TableCell className="font-medium">{lead.academyName}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{lead.trainingLocation}</TableCell>
+                <TableCell>
+                  <p>{lead.contactName}</p>
+                  <p className="text-xs text-muted-foreground">{lead.contactEmail}</p>
+                  {lead.contactPhone ? <p className="text-xs text-muted-foreground">{lead.contactPhone}</p> : null}
+                </TableCell>
+                <TableCell className="max-w-xs text-sm text-muted-foreground">{lead.message || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <LeadStatusBadge status={lead.status} />
+                    <Select
+                      aria-label={`Update status for ${lead.academyName}`}
+                      className="h-8 w-auto text-xs"
+                      value={lead.status}
+                      disabled={updateStatus.isPending}
+                      onChange={(e) => void onStatusChange(lead.id, e.target.value as LeadStatus)}
+                    >
+                      {LEAD_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {LEAD_STATUS_LABELS[status]}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">
+                  {formatDate(lead.createdAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

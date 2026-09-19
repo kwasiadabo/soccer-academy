@@ -40,6 +40,8 @@ export interface OnboardAcademyResult {
   admin: { email: string; temporaryPassword: string }
 }
 
+export type LeadStatus = "NEW" | "CONTACTED" | "CONVERTED" | "CLOSED"
+
 export interface PlatformLead {
   id: string
   academyName: string
@@ -48,6 +50,7 @@ export interface PlatformLead {
   contactEmail: string
   contactPhone: string | null
   message: string | null
+  status: LeadStatus
   createdAt: string
 }
 
@@ -89,6 +92,17 @@ export function usePlatformLeads() {
   return useQuery({
     queryKey: LEADS_KEY,
     queryFn: () => platformApi.get<PlatformLead[]>("/leads"),
+  })
+}
+
+export function useUpdateLeadStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: LeadStatus }) =>
+      platformApi.patch<PlatformLead>(`/leads/${id}/status`, { status }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: LEADS_KEY })
+    },
   })
 }
 
