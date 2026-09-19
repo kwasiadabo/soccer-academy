@@ -358,20 +358,26 @@ function LeadsTab() {
 function PricingTab() {
   const { data: pricing, isLoading, isError, refetch } = usePlatformPricing()
   const updatePricing = useUpdatePlatformPricing()
-  const [value, setValue] = useState("")
+  const [pricePerPlayer, setPricePerPlayer] = useState("")
+  const [signupFee, setSignupFee] = useState("")
 
   useEffect(() => {
-    if (pricing) setValue(String(pricing.pricePerPlayer))
+    if (pricing) {
+      setPricePerPlayer(String(pricing.pricePerPlayer))
+      setSignupFee(String(pricing.signupFee))
+    }
   }, [pricing])
 
   const onSave = async () => {
-    const pricePerPlayer = Number(value)
-    if (!Number.isFinite(pricePerPlayer) || pricePerPlayer < 0) return
+    const pricePerPlayerValue = Number(pricePerPlayer)
+    const signupFeeValue = Number(signupFee)
+    if (!Number.isFinite(pricePerPlayerValue) || pricePerPlayerValue < 0) return
+    if (!Number.isFinite(signupFeeValue) || signupFeeValue < 0) return
     try {
-      await updatePricing.mutateAsync(pricePerPlayer)
-      toast.success("Price updated.")
+      await updatePricing.mutateAsync({ pricePerPlayer: pricePerPlayerValue, signupFee: signupFeeValue })
+      toast.success("Pricing updated.")
     } catch (err) {
-      toast.error(err instanceof PlatformApiError ? err.message : "Could not update the price.")
+      toast.error(err instanceof PlatformApiError ? err.message : "Could not update pricing.")
     }
   }
 
@@ -379,32 +385,43 @@ function PricingTab() {
   if (isError) return <ErrorState onRetry={() => void refetch()} />
 
   return (
-    <div className="max-w-md space-y-4 rounded-xl border border-border bg-card p-6">
-      <div>
-        <h2 className="text-sm font-semibold">Price per active player</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="max-w-md space-y-6 rounded-xl border border-border bg-card p-6">
+      <div className="space-y-1.5">
+        <Label htmlFor="pricePerPlayer">GHS / player / month</Label>
+        <p className="text-sm text-muted-foreground">
           Every academy is billed monthly at this rate, times its active player count. Changing it only affects
           billing periods that start after the change — invoices already generated keep their own snapshot.
         </p>
+        <Input
+          id="pricePerPlayer"
+          type="number"
+          min={0}
+          step="0.01"
+          value={pricePerPlayer}
+          onChange={(e) => setPricePerPlayer(e.target.value)}
+          className="w-40"
+        />
       </div>
-      <div className="flex items-end gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="pricePerPlayer">GHS / player / month</Label>
-          <Input
-            id="pricePerPlayer"
-            type="number"
-            min={0}
-            step="0.01"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-40"
-          />
-        </div>
-        <Button onClick={() => void onSave()} disabled={updatePricing.isPending || !value}>
-          <Save className="size-4" aria-hidden />
-          Save
-        </Button>
+      <div className="space-y-1.5">
+        <Label htmlFor="signupFee">One-time signup fee (GHS)</Label>
+        <p className="text-sm text-muted-foreground">
+          Charged once during self-serve signup, before an academy's account is created. Applies to every academy
+          that signs up from here on — a value of 0 disables self-serve signup entirely.
+        </p>
+        <Input
+          id="signupFee"
+          type="number"
+          min={0}
+          step="0.01"
+          value={signupFee}
+          onChange={(e) => setSignupFee(e.target.value)}
+          className="w-40"
+        />
       </div>
+      <Button onClick={() => void onSave()} disabled={updatePricing.isPending || !pricePerPlayer || !signupFee}>
+        <Save className="size-4" aria-hidden />
+        Save
+      </Button>
     </div>
   )
 }

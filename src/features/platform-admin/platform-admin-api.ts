@@ -22,6 +22,7 @@ export interface AcademyWithHealth {
 
 export interface PlatformPricing {
   pricePerPlayer: number
+  signupFee: number
   currency: string
 }
 
@@ -101,7 +102,8 @@ export function usePlatformPricing() {
 export function useUpdatePlatformPricing() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (pricePerPlayer: number) => platformApi.patch<PlatformPricing>("/pricing", { pricePerPlayer }),
+    mutationFn: (input: { pricePerPlayer: number; signupFee: number }) =>
+      platformApi.patch<PlatformPricing>("/pricing", input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PRICING_KEY })
     },

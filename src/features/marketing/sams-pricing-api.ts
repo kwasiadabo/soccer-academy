@@ -3,6 +3,7 @@ import { api } from "@/lib/api-client"
 
 export interface PlatformPricing {
   pricePerPlayer: number
+  signupFee: number
   currency: string
 }
 
