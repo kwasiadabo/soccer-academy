@@ -46,7 +46,7 @@ function PricingTab({ onContinue }: { onContinue: () => void }) {
   const { data: pricing, isLoading } = usePublicPricing()
 
   return (
-    <div className="rounded-2xl border border-border bg-background p-6 shadow-lg sm:p-8">
+    <div className="rounded-2xl border border-border bg-background p-6 text-foreground shadow-lg sm:p-8">
       <h2 className="text-lg font-bold tracking-tight">SAMS pricing</h2>
       <p className="mt-1 text-sm text-muted-foreground">Two simple charges — nothing hidden, no per-feature tiers.</p>
 
@@ -127,7 +127,7 @@ function DetailsTab({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-background p-6 shadow-lg sm:p-8">
+    <div className="rounded-2xl border border-border bg-background p-6 text-foreground shadow-lg sm:p-8">
       <h2 className="text-lg font-bold tracking-tight">Academy details</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Create your academy's own SAMS workspace right now — no waiting on a callback.
