@@ -7,17 +7,17 @@ import { LoadingState } from "@/design-system/loading-state"
 import { SamsMark } from "@/design-system/sams-mark"
 import { ApiError } from "@/lib/api-client"
 import { useVerifyAndCreateSignup, type SignupAcademyResult } from "./sams-signup-api"
-import { clearPendingSignup, loadPendingSignup, pendingSignupLogoFile } from "./pending-signup"
 
 type Outcome =
   | { status: "verifying" }
   | { status: "success"; result: SignupAcademyResult }
   | { status: "error"; message: string }
 
-// Where Paystack redirects back to after the signup fee is charged — the
-// browser left the app entirely for checkout, so this page recovers the
-// academy/admin details from sessionStorage (see pending-signup.ts), then
-// asks the backend to verify the payment and, only then, create the account.
+// Where Paystack redirects back to after the signup fee is charged. The
+// academy/admin details were already persisted server-side as a
+// PendingAcademySignup when payment was initialized (see sams-signup-page.tsx),
+// so all this page needs is the reference to verify the payment and, only
+// then, create the account.
 export function SignupPaymentCallbackPage() {
   const [searchParams] = useSearchParams()
   const reference = searchParams.get("reference")
@@ -30,20 +30,15 @@ export function SignupPaymentCallbackPage() {
     attempted.current = true
 
     const run = async () => {
-      const pending = loadPendingSignup()
-      if (!reference || !pending) {
+      if (!reference) {
         setOutcome({
           status: "error",
-          message: "We couldn't find your signup details. Please start over.",
+          message: "We couldn't find your payment reference. Please start over.",
         })
         return
       }
       try {
-        const logo = await pendingSignupLogoFile(pending)
-        const { logoDataUrl: _logoDataUrl, logoFileName: _logoFileName, logoMimeType: _logoMimeType, ...fields } =
-          pending
-        const result = await verifyAndCreate.mutateAsync({ ...fields, logo, reference })
-        clearPendingSignup()
+        const result = await verifyAndCreate.mutateAsync({ reference })
         setOutcome({ status: "success", result })
       } catch (err) {
         setOutcome({

@@ -30,33 +30,48 @@ export function useSignupAcademy() {
   })
 }
 
+export interface InitializeSignupInput {
+  name: string
+  slug: string
+  adminFirstName: string
+  adminLastName: string
+  adminEmail: string
+  adminPassword: string
+  callbackUrl: string
+}
+
 export interface InitializeSignupPaymentResult {
   authorizationUrl: string
   reference: string
 }
 
-// Step one of the paid signup flow — charges the one-time signup fee before
-// anything is created. Nothing about the academy is sent here; that's carried
-// through the Paystack redirect by the caller (see signup-payment-callback-page.tsx).
+// Step one of the paid signup flow — charges the one-time signup fee and,
+// the instant that's initialized, the backend persists these details as a
+// PendingAcademySignup (not a real account) so the signup survives however
+// long it takes to actually pay, including closing the browser entirely.
 export function useInitializeSignupPayment() {
   return useMutation({
-    mutationFn: (input: { email: string; callbackUrl: string }) =>
+    mutationFn: (input: InitializeSignupInput) =>
       api.post<InitializeSignupPaymentResult>("/platform/signup/initialize-payment", input),
   })
 }
 
+// The link in the resume/reminder/deletion-warning emails — issues a fresh
+// Paystack checkout for an existing PendingAcademySignup.
+export function useResumeSignupPayment() {
+  return useMutation({
+    mutationFn: (input: { resumeToken: string; callbackUrl: string }) =>
+      api.post<InitializeSignupPaymentResult>("/platform/signup/resume", input),
+  })
+}
+
 // Step two — verifies the payment actually succeeded and, only then, creates
-// the academy with the same details the /platform/signup endpoint accepts.
+// the academy from the PendingAcademySignup this reference belongs to. The
+// academy/admin details themselves no longer travel through the browser
+// here — they were already persisted in step one.
 export function useVerifyAndCreateSignup() {
   return useMutation({
-    mutationFn: (input: SignupAcademyInput & { reference: string }) => {
-      const { logo, ...fields } = input
-      const formData = new FormData()
-      for (const [key, value] of Object.entries(fields)) {
-        if (value !== undefined) formData.append(key, value)
-      }
-      if (logo) formData.append("logo", logo)
-      return apiUpload<SignupAcademyResult>("/platform/signup/verify-and-create", formData)
-    },
+    mutationFn: (input: { reference: string }) =>
+      api.post<SignupAcademyResult>("/platform/signup/verify-and-create", input),
   })
 }

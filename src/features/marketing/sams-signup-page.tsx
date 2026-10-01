@@ -16,8 +16,7 @@ import { LoadingState } from "@/design-system/loading-state"
 import { formatCurrency } from "@/lib/currency"
 import { ApiError } from "@/lib/api-client"
 import { usePublicPricing } from "./sams-pricing-api"
-import { useInitializeSignupPayment, type SignupAcademyInput } from "./sams-signup-api"
-import { savePendingSignup } from "./pending-signup"
+import { useInitializeSignupPayment } from "./sams-signup-api"
 
 function slugify(value: string): string {
   return value
@@ -111,15 +110,12 @@ function DetailsTab({ onBack }: { onBack: () => void }) {
       // subdomain is no longer collected here, so it's derived from the
       // academy name instead.
       const { confirmPassword: _confirmPassword, ...input } = values
-      const pending: SignupAcademyInput = { ...input, slug: slugify(values.name) }
 
-      // Payment happens on Paystack's own hosted page — the browser navigates
-      // fully away and back, so these details are carried across that trip in
-      // sessionStorage (see pending-signup.ts) rather than kept in memory.
-      savePendingSignup(pending)
-
+      // The backend persists these details the instant payment is initialized
+      // (as a PendingAcademySignup), so there's nothing left to carry across
+      // the Paystack redirect ourselves — just follow it.
       const callbackUrl = `${window.location.origin}/signup/callback`
-      const result = await initializePayment.mutateAsync({ email: values.adminEmail, callbackUrl })
+      const result = await initializePayment.mutateAsync({ ...input, slug: slugify(values.name), callbackUrl })
       window.location.href = result.authorizationUrl
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Could not start payment. Please try again.")
