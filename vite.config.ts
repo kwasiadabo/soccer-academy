@@ -21,7 +21,7 @@ export default defineConfig({
 			// The app itself now sends X-Academy-Slug on every request (see
 			// src/lib/tenant.ts) — no need for the proxy to inject it too.
 			'/api': {
-				target: 'http://localhost:3000',
+				target: 'https://api.sams.variablexsolutions.com',
 				changeOrigin: true,
 			},
 		},
