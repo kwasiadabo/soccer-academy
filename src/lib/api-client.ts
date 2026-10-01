@@ -1,5 +1,14 @@
 import { getAcademySlug } from "./tenant";
 
+// Mirrors the backend's own tenant-resolution exclusion (see
+// AppModule#configure) — `/platform/*` is the platform-operator control
+// plane, which sits above every academy and has no "current academy" to
+// scope to. A visitor hitting these routes (e.g. signing up, before they
+// belong to any academy at all) must never be tagged with one anyway.
+function isPlatformPath(path: string): boolean {
+  return path === "/platform" || path.startsWith("/platform/");
+}
+
 let accessToken: string | null = null;
 let onSessionExpired: (() => void) | null = null;
 
@@ -32,7 +41,7 @@ interface RequestOptions extends Omit<RequestInit, "body"> {
 async function rawRequest(path: string, options: RequestOptions = {}): Promise<Response> {
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  headers.set("X-Academy-Slug", getAcademySlug());
+  if (!isPlatformPath(path)) headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -109,7 +118,7 @@ export const api = {
 
 async function rawUpload(path: string, formData: FormData): Promise<Response> {
   const headers = new Headers();
-  headers.set("X-Academy-Slug", getAcademySlug());
+  if (!isPlatformPath(path)) headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -134,7 +143,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 
 export async function fetchAuthorizedBlob(path: string): Promise<Blob> {
   const headers = new Headers();
-  headers.set("X-Academy-Slug", getAcademySlug());
+  if (!isPlatformPath(path)) headers.set("X-Academy-Slug", getAcademySlug());
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
