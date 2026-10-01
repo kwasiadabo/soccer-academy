@@ -42,3 +42,26 @@ export function getAcademySlug(): string {
   }
   return import.meta.env.VITE_DEV_ACADEMY_SLUG || "kapikids"
 }
+
+// Returns the exact root domain this hostname matches (i.e. the bare
+// marketing/platform domain, not any specific academy's own subdomain of
+// it). Used to recognize when a restored session (see auth-context.tsx)
+// needs to be handed off to a different origin rather than rendered here —
+// scoped to only the platform's own known roots so navigating to some other
+// specific academy's subdomain is never second-guessed this way.
+export function getBareRootHost(): string | null {
+  const hostname = window.location.hostname
+  return ROOT_HOSTS.find((root) => hostname === root) ?? null
+}
+
+// Builds the URL for a specific academy's own subdomain, preserving the
+// current protocol/port (so this also works for *.lvh.me:5173 in local
+// dev). Returns null when the current host isn't one of the platform's own
+// root domains — there's no subdomain pattern to build against for a custom
+// domain, or plain `localhost`.
+export function buildAcademyUrl(slug: string): string | null {
+  const root = getBareRootHost()
+  if (!root) return null
+  const { protocol, port } = window.location
+  return `${protocol}//${slug}.${root}${port ? `:${port}` : ""}/`
+}

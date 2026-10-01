@@ -2,10 +2,18 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { ReactNode } from "react"
 import type { AuthResponse, AuthUser } from "@/lib/shared-types"
 import { api, setAccessToken, setSessionExpiredHandler, tryRefresh } from "@/lib/api-client"
+import { getAcademySlug } from "@/lib/tenant"
 
 interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
+  // Set when a restored session (via the refresh cookie, now shared across
+  // subdomains — see COOKIE_DOMAIN) turns out to belong to a different
+  // academy than the one this page resolved to, and only on the platform's
+  // own bare root domain — never on some other academy's own subdomain,
+  // which is a deliberate visit, not a stale one. Nothing is rendered from
+  // that session here; see RootRedirect, the one place that acts on this.
+  crossAcademySlug: string | null
   login: (email: string, password: string) => Promise<AuthUser>
   logout: () => Promise<void>
   hasRole: (...roles: string[]) => boolean
@@ -23,6 +31,7 @@ const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scr
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [crossAcademySlug, setCrossAcademySlug] = useState<string | null>(null)
 
   const clearSession = useCallback(() => {
     setAccessToken(null)
@@ -51,11 +60,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     ;(async () => {
       try {
-        const refreshed = await tryRefresh()
-        if (refreshed) {
-          const me = await api.get<AuthUser>("/auth/me").catch(() => null)
-          setUser(me)
+        const { success, academySlug } = await tryRefresh()
+        if (!success) return
+
+        if (academySlug && academySlug !== getAcademySlug()) {
+          // The shared cookie restored a session for a different academy
+          // than this page resolved to — surfaced via context instead of
+          // calling /auth/me (which would just fail: its JwtStrategy
+          // rejects an access token whose academy doesn't match the
+          // current request's) or navigating from here directly, since
+          // only RootRedirect's bare-root-domain case should ever act on this.
+          setCrossAcademySlug(academySlug)
+          return
         }
+
+        const me = await api.get<AuthUser>("/auth/me").catch(() => null)
+        setUser(me)
       } finally {
         setIsLoading(false)
       }
@@ -120,7 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasRole, changePassword }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, crossAcademySlug, login, logout, hasRole, changePassword }}
+    >
       {children}
     </AuthContext.Provider>
   )

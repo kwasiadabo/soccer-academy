@@ -54,14 +54,25 @@ async function rawRequest(path: string, options: RequestOptions = {}): Promise<R
   });
 }
 
+export interface RefreshResult {
+  success: boolean;
+  // Which academy the restored session actually belongs to — present
+  // whenever `success` is true. With COOKIE_DOMAIN sharing the refresh
+  // cookie across subdomains, this can come back as the bare root domain's
+  // response to a cookie that was issued on (and still belongs to) one
+  // specific academy's own subdomain, so a caller can't just assume it
+  // matches whatever academy the current page already thinks it's on.
+  academySlug: string | null;
+}
+
 // The refresh token rotates on every call, so two concurrent refreshes (e.g. several
 // React Query requests hitting a 401 at once) would race: whichever loses presents a
 // token the winner already rotated away, which the backend's reuse-detection treats as
 // theft and revokes the whole session. Sharing one in-flight request keeps concurrent
 // callers from ever racing each other.
-let refreshInFlight: Promise<boolean> | null = null;
+let refreshInFlight: Promise<RefreshResult> | null = null;
 
-export async function tryRefresh(): Promise<boolean> {
+export async function tryRefresh(): Promise<RefreshResult> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       try {
@@ -70,12 +81,12 @@ export async function tryRefresh(): Promise<boolean> {
           credentials: "include",
           headers: { "X-Academy-Slug": getAcademySlug() },
         });
-        if (!res.ok) return false;
-        const data = (await res.json()) as { accessToken: string };
+        if (!res.ok) return { success: false, academySlug: null };
+        const data = (await res.json()) as { accessToken: string; academySlug: string };
         setAccessToken(data.accessToken);
-        return true;
+        return { success: true, academySlug: data.academySlug };
       } catch {
-        return false;
+        return { success: false, academySlug: null };
       } finally {
         refreshInFlight = null;
       }
@@ -88,8 +99,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let res = await rawRequest(path, options);
 
   if (res.status === 401 && path !== "/auth/login") {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
+    const { success } = await tryRefresh();
+    if (success) {
       res = await rawRequest(path, options);
     } else {
       onSessionExpired?.();
@@ -129,8 +140,8 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
   let res = await rawUpload(path, formData);
 
   if (res.status === 401) {
-    const refreshed = await tryRefresh();
-    res = refreshed ? await rawUpload(path, formData) : res;
+    const { success } = await tryRefresh();
+    res = success ? await rawUpload(path, formData) : res;
   }
 
   if (!res.ok) {
@@ -150,8 +161,8 @@ export async function fetchAuthorizedBlob(path: string): Promise<Blob> {
   let res = await fetch(`/api${path}`, { headers, credentials: "include" });
 
   if (res.status === 401) {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
+    const { success } = await tryRefresh();
+    if (success) {
       if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
       res = await fetch(`/api${path}`, { headers, credentials: "include" });
     }

@@ -1,5 +1,7 @@
+import { useEffect } from "react"
 import { Navigate, Outlet, Route, Routes } from "react-router-dom"
 import { ROLE_NAMES } from "@/lib/shared-types"
+import { buildAcademyUrl } from "@/lib/tenant"
 
 import { useAuth } from "@/app/auth-context"
 import { ProtectedRoute } from "@/app/protected-route"
@@ -77,8 +79,20 @@ import { BillingPage } from "@/features/billing/billing-page"
 import { AcademySettingsPage } from "@/features/academy-settings/academy-settings-page"
 
 function RootRedirect() {
-  const { user, isLoading } = useAuth()
-  if (isLoading) return null
+  const { user, isLoading, crossAcademySlug } = useAuth()
+
+  // A shared refresh cookie (see COOKIE_DOMAIN) can restore a session here
+  // for an academy other than this bare root domain — there's nothing to
+  // render for it locally, so hand the browser off to where that session
+  // actually lives. A full navigation, not client-side routing: it's a
+  // different subdomain entirely.
+  useEffect(() => {
+    if (!crossAcademySlug) return
+    const url = buildAcademyUrl(crossAcademySlug)
+    if (url) window.location.href = url
+  }, [crossAcademySlug])
+
+  if (isLoading || crossAcademySlug) return null
   if (user) {
     return <Navigate to={user.mustChangePassword ? "/change-password" : homePathForRoles(user.roles)} replace />
   }
