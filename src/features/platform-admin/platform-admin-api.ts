@@ -26,20 +26,6 @@ export interface PlatformPricing {
   currency: string
 }
 
-export interface OnboardAcademyInput {
-  slug: string
-  name: string
-  brandName?: string
-  adminEmail: string
-  adminFirstName: string
-  adminLastName: string
-}
-
-export interface OnboardAcademyResult {
-  academy: { id: string; slug: string; name: string; status: AcademyStatus }
-  admin: { email: string; temporaryPassword: string }
-}
-
 export type LeadStatus = "NEW" | "CONTACTED" | "CONVERTED" | "CLOSED"
 
 export interface PlatformLead {
@@ -79,16 +65,6 @@ export function useAcademiesWithHealth() {
   return useQuery({
     queryKey: ACADEMIES_KEY,
     queryFn: () => platformApi.get<AcademyWithHealth[]>("/academies"),
-  })
-}
-
-export function useOnboardAcademy() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (input: OnboardAcademyInput) => platformApi.post<OnboardAcademyResult>("/academies", input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ACADEMIES_KEY })
-    },
   })
 }
 
