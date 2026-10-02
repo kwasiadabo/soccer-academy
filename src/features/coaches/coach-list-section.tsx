@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, KeyRound, ChevronRight, Search, X } from "lucide-react"
+import { Plus, KeyRound, Pencil, ChevronRight, Search, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -27,9 +27,11 @@ import { ErrorState } from "@/design-system/error-state"
 import { StatusBadge } from "@/design-system/status-badge"
 import { ApiError } from "@/lib/api-client"
 import { ROLE_NAMES } from "@/lib/shared-types"
+import { useUpdateUser } from "@/features/users/users-api"
 import {
   useCoaches,
   useCreateCoach,
+  useUpdateCoach,
   useGrantCoachPortalAccess,
   STAFF_ROLE_LABELS,
   type Coach,
@@ -126,6 +128,151 @@ function GrantAccessDialog({ coach, onClose }: { coach: Coach; onClose: () => vo
   )
 }
 
+const editSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().optional(),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  bio: z.string().optional(),
+  role: z.enum(["COACH", "KITMAN", "RECEPTIONIST_CASHIER", "MEDIA"]),
+})
+type EditFormValues = z.infer<typeof editSchema>
+
+function EditStaffDialog({ coach, onClose }: { coach: Coach; onClose: () => void }) {
+  const updateCoach = useUpdateCoach(coach.id)
+  const updateUser = useUpdateUser(coach.userId ?? "")
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [accessRoles, setAccessRoles] = useState<string[]>(
+    coach.user?.roles.map((r) => r.role.name) ?? [],
+  )
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<EditFormValues>({
+    resolver: zodResolver(editSchema),
+    defaultValues: {
+      firstName: coach.firstName,
+      middleName: coach.middleName ?? "",
+      lastName: coach.lastName,
+      phone: coach.phone ?? "",
+      email: coach.email ?? "",
+      bio: coach.bio ?? "",
+      role: coach.role,
+    },
+  })
+
+  const toggleAccessRole = (role: string) => {
+    setAccessRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]))
+  }
+
+  const onSubmit = async (values: EditFormValues) => {
+    setServerError(null)
+    if (coach.userId && accessRoles.length === 0) {
+      setServerError("Select at least one portal access role")
+      return
+    }
+    try {
+      await updateCoach.mutateAsync({
+        firstName: values.firstName,
+        middleName: values.middleName || undefined,
+        lastName: values.lastName,
+        phone: values.phone || undefined,
+        email: values.email || undefined,
+        bio: values.bio || undefined,
+        role: values.role,
+      })
+      if (coach.userId) {
+        await updateUser.mutateAsync({ roleNames: accessRoles })
+      }
+      toast.success("Staff profile updated.")
+      onClose()
+    } catch (err) {
+      setServerError(err instanceof ApiError ? err.message : "Could not update staff profile.")
+    }
+  }
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Edit staff</DialogTitle>
+        <DialogDescription>
+          {coach.firstName} {coach.lastName}
+        </DialogDescription>
+      </DialogHeader>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-first-name">First name</Label>
+            <Input id="edit-staff-first-name" {...register("firstName")} />
+            {errors.firstName ? (
+              <p className="text-xs text-destructive">{errors.firstName.message}</p>
+            ) : null}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-middle-name">Middle name</Label>
+            <Input id="edit-staff-middle-name" {...register("middleName")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-last-name">Last name</Label>
+            <Input id="edit-staff-last-name" {...register("lastName")} />
+            {errors.lastName ? <p className="text-xs text-destructive">{errors.lastName.message}</p> : null}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-phone">Phone</Label>
+            <Input id="edit-staff-phone" {...register("phone")} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-email">Email</Label>
+            <Input id="edit-staff-email" type="email" {...register("email")} />
+            {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-staff-role">Role</Label>
+            <Select id="edit-staff-role" {...register("role")}>
+              {STAFF_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {STAFF_ROLE_LABELS[role]}
+                </option>
+              ))}
+            </Select>
+            {errors.role ? <p className="text-xs text-destructive">{errors.role.message}</p> : null}
+          </div>
+        </div>
+
+        {coach.userId ? (
+          <div className="space-y-2">
+            <Label>Portal access roles</Label>
+            {PORTAL_ACCESS_ROLES.map((role) => (
+              <label key={role} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={accessRoles.includes(role)}
+                  onChange={() => toggleAccessRole(role)}
+                />
+                {role}
+              </label>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            This staff member has no portal login yet, so there are no access roles to assign.
+          </p>
+        )}
+
+        {serverError ? <p className="text-sm text-destructive">{serverError}</p> : null}
+        <DialogFooter>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  )
+}
+
 export function CoachListSection({
   basePath = "/admin/staff",
   addButtonLabel = "New staff",
@@ -138,6 +285,7 @@ export function CoachListSection({
   const createCoach = useCreateCoach()
   const [open, setOpen] = useState(false)
   const [grantingCoach, setGrantingCoach] = useState<Coach | null>(null)
+  const [editingCoach, setEditingCoach] = useState<Coach | null>(null)
 
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
@@ -340,6 +488,9 @@ export function CoachListSection({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditingCoach(coach)}>
+                        <Pencil /> Edit
+                      </Button>
                       {!coach.userId ? (
                         <Button variant="outline" size="sm" onClick={() => setGrantingCoach(coach)}>
                           <KeyRound /> Grant access
@@ -360,6 +511,12 @@ export function CoachListSection({
       <Dialog open={!!grantingCoach} onOpenChange={(o) => !o && setGrantingCoach(null)}>
         {grantingCoach ? (
           <GrantAccessDialog coach={grantingCoach} onClose={() => setGrantingCoach(null)} />
+        ) : null}
+      </Dialog>
+
+      <Dialog open={!!editingCoach} onOpenChange={(o) => !o && setEditingCoach(null)}>
+        {editingCoach ? (
+          <EditStaffDialog coach={editingCoach} onClose={() => setEditingCoach(null)} />
         ) : null}
       </Dialog>
     </Card>
