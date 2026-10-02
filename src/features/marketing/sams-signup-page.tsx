@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Link } from "react-router-dom"
-import { ArrowLeft, ArrowRight, Banknote, CreditCard } from "lucide-react"
+import { ArrowLeft, ArrowRight, Banknote, CreditCard, MailCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -94,8 +94,32 @@ function PricingTab({ onContinue }: { onContinue: () => void }) {
   )
 }
 
+function PaymentLinkSentNotice({ email, expiresAt }: { email: string; expiresAt: string }) {
+  const expiryText = new Date(expiresAt).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+
+  return (
+    <div className="rounded-2xl border border-border bg-background p-6 text-foreground shadow-lg sm:p-8">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="flex size-12 items-center justify-center rounded-full bg-lime-400/15 text-lime-600">
+          <MailCheck className="size-6" aria-hidden />
+        </span>
+        <h2 className="text-lg font-bold tracking-tight">Check your email</h2>
+        <p className="text-sm text-muted-foreground">
+          We've sent a payment link to <span className="font-medium text-foreground">{email}</span>. You must
+          complete payment before your academy's account is activated.
+        </p>
+        <p className="text-xs text-muted-foreground">This link expires at {expiryText} (72 hours from now).</p>
+      </div>
+    </div>
+  )
+}
+
 function DetailsTab({ onBack }: { onBack: () => void }) {
   const initializePayment = useInitializeSignupPayment()
+  const [sentTo, setSentTo] = useState<{ email: string; expiresAt: string } | null>(null)
 
   const {
     register,
@@ -112,21 +136,25 @@ function DetailsTab({ onBack }: { onBack: () => void }) {
       const { confirmPassword: _confirmPassword, ...input } = values
 
       // The backend persists these details the instant payment is initialized
-      // (as a PendingAcademySignup), so there's nothing left to carry across
-      // the Paystack redirect ourselves — just follow it.
+      // (as a PendingAcademySignup) and emails the actual payment link — the
+      // browser never gets handed a Paystack URL to auto-redirect into.
       const callbackUrl = `${window.location.origin}/signup/callback`
       const result = await initializePayment.mutateAsync({ ...input, slug: slugify(values.name), callbackUrl })
-      window.location.href = result.authorizationUrl
+      setSentTo({ email: result.adminEmail, expiresAt: result.paymentLinkExpiresAt })
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Could not start payment. Please try again.")
     }
+  }
+
+  if (sentTo) {
+    return <PaymentLinkSentNotice email={sentTo.email} expiresAt={sentTo.expiresAt} />
   }
 
   return (
     <div className="rounded-2xl border border-border bg-background p-6 text-foreground shadow-lg sm:p-8">
       <h2 className="text-lg font-bold tracking-tight">Academy details</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Create your academy's own SAMS workspace right now — no waiting on a callback.
+        We'll email you a payment link once you submit your details below.
       </p>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -182,7 +210,7 @@ function DetailsTab({ onBack }: { onBack: () => void }) {
             Back to pricing
           </Button>
           <Button type="submit" disabled={isSubmitting || initializePayment.isPending}>
-            {isSubmitting || initializePayment.isPending ? "Starting payment…" : "Continue to payment"}
+            {isSubmitting || initializePayment.isPending ? "Sending payment link…" : "Send payment link"}
             <ArrowRight className="size-4" aria-hidden />
           </Button>
         </div>
@@ -194,9 +222,12 @@ function DetailsTab({ onBack }: { onBack: () => void }) {
 // The real "Sign up" flow — creates the academy and its first Admin account,
 // gated behind a one-time signup fee. A full page (not a modal) so it can
 // carry its own URL: a pricing tab (must be seen before anything can be
-// created) and an academy/details tab, then a full navigation away to
-// Paystack and back to signup-payment-callback-page.tsx, which is what
-// actually creates the account once payment is verified.
+// created) and an academy/details tab. Submitting details never redirects
+// into Paystack directly — the backend emails the admin a payment link
+// (good for 72 hours) and this page just confirms it was sent. Paying
+// follows that emailed link to Paystack and back to
+// signup-payment-callback-page.tsx, which is what actually creates the
+// account once payment is verified.
 export function SamsSignupPage() {
   const [tab, setTab] = useState<"pricing" | "details">("pricing")
 

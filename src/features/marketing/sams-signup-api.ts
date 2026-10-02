@@ -41,14 +41,16 @@ export interface InitializeSignupInput {
 }
 
 export interface InitializeSignupPaymentResult {
-  authorizationUrl: string
-  reference: string
+  adminEmail: string
+  paymentLinkExpiresAt: string
 }
 
 // Step one of the paid signup flow — charges the one-time signup fee and,
 // the instant that's initialized, the backend persists these details as a
-// PendingAcademySignup (not a real account) so the signup survives however
-// long it takes to actually pay, including closing the browser entirely.
+// PendingAcademySignup (not a real account) and emails the admin a payment
+// link good for 72 hours. Deliberately does NOT hand back a Paystack URL to
+// redirect into — the admin must open their email and follow the link from
+// there to actually pay.
 export function useInitializeSignupPayment() {
   return useMutation({
     mutationFn: (input: InitializeSignupInput) =>
@@ -56,12 +58,17 @@ export function useInitializeSignupPayment() {
   })
 }
 
+export interface ResumeSignupPaymentResult {
+  authorizationUrl: string
+  reference: string
+}
+
 // The link in the resume/reminder/deletion-warning emails — issues a fresh
 // Paystack checkout for an existing PendingAcademySignup.
 export function useResumeSignupPayment() {
   return useMutation({
     mutationFn: (input: { resumeToken: string; callbackUrl: string }) =>
-      api.post<InitializeSignupPaymentResult>("/platform/signup/resume", input),
+      api.post<ResumeSignupPaymentResult>("/platform/signup/resume", input),
   })
 }
 
