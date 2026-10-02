@@ -29,6 +29,7 @@ import { formatCurrency } from "@/lib/currency"
 import { formatDate } from "@/lib/date"
 import {
   useAcademiesWithHealth,
+  useBillingSummary,
   useOnboardAcademy,
   usePlatformLeads,
   usePlatformPricing,
@@ -410,6 +411,89 @@ function LeadsTab() {
   )
 }
 
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7)
+}
+
+function BillingTab() {
+  const [month, setMonth] = useState(currentMonth())
+  const { data, isLoading, isError, refetch } = useBillingSummary(month)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Amounts academies owe SAMS, by month.</p>
+        <Input
+          type="month"
+          aria-label="Month"
+          value={month}
+          max={currentMonth()}
+          onChange={(e) => setMonth(e.target.value)}
+          className="w-40"
+        />
+      </div>
+
+      {isLoading ? (
+        <LoadingState rows={4} />
+      ) : isError ? (
+        <ErrorState onRetry={() => void refetch()} />
+      ) : !data?.academies.length ? (
+        <EmptyState title="No invoices for this month" description="No academy had a billing period starting in this month." />
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Charged</p>
+              <p className="text-xl font-semibold tabular-nums">{formatCurrency(data.totals.amountCharged)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Paid</p>
+              <p className="text-xl font-semibold tabular-nums">{formatCurrency(data.totals.amountPaid)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Outstanding</p>
+              <p
+                className={`text-xl font-semibold tabular-nums ${data.totals.outstanding > 0 ? "text-destructive" : ""}`}
+              >
+                {formatCurrency(data.totals.outstanding)}
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Academy</TableHead>
+                  <TableHead className="text-right">Invoices</TableHead>
+                  <TableHead className="text-right">Charged</TableHead>
+                  <TableHead className="text-right">Paid</TableHead>
+                  <TableHead className="text-right">Outstanding</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.academies.map((row) => (
+                  <TableRow key={row.academyId}>
+                    <TableCell className="font-medium">{row.academyName}</TableCell>
+                    <TableCell className="text-right tabular-nums">{row.invoiceCount}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(row.amountCharged)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(row.amountPaid)}</TableCell>
+                    <TableCell
+                      className={`text-right tabular-nums ${row.outstanding > 0 ? "font-medium text-destructive" : ""}`}
+                    >
+                      {formatCurrency(row.outstanding)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function PricingTab() {
   const { data: pricing, isLoading, isError, refetch } = usePlatformPricing()
   const updatePricing = useUpdatePlatformPricing()
@@ -508,11 +592,15 @@ export function PlatformDashboardPage() {
         <Tabs defaultValue="academies">
           <TabsList>
             <TabsTrigger value="academies">Academies</TabsTrigger>
+            <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
           </TabsList>
           <TabsContent value="academies" className="mt-6">
             <AcademiesTab />
+          </TabsContent>
+          <TabsContent value="billing" className="mt-6">
+            <BillingTab />
           </TabsContent>
           <TabsContent value="leads" className="mt-6">
             <LeadsTab />

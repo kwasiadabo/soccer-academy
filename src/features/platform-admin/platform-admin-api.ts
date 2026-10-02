@@ -54,9 +54,26 @@ export interface PlatformLead {
   createdAt: string
 }
 
+export interface AcademyBillingSummaryRow {
+  academyId: string
+  academyName: string
+  amountCharged: number
+  amountPaid: number
+  outstanding: number
+  invoiceCount: number
+}
+
+export interface BillingSummary {
+  month: string
+  currency: string
+  academies: AcademyBillingSummaryRow[]
+  totals: { amountCharged: number; amountPaid: number; outstanding: number }
+}
+
 const ACADEMIES_KEY = ["platform-admin", "academies"]
 const LEADS_KEY = ["platform-admin", "leads"]
 const PRICING_KEY = ["platform-admin", "pricing"]
+const BILLING_SUMMARY_KEY = ["platform-admin", "billing-summary"]
 
 export function useAcademiesWithHealth() {
   return useQuery({
@@ -121,5 +138,12 @@ export function useUpdatePlatformPricing() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PRICING_KEY })
     },
+  })
+}
+
+export function useBillingSummary(month: string) {
+  return useQuery({
+    queryKey: [...BILLING_SUMMARY_KEY, month],
+    queryFn: () => platformApi.get<BillingSummary>(`/billing/summary?month=${month}`),
   })
 }
